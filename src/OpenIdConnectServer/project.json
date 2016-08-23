@@ -6,6 +6,11 @@
       "version": "1.0.0",
       "type": "platform"
     },
+    "AspNet.Security.OAuth.Validation": "1.0.0-*",
+    "OpenIddict": "1.0.0-*",
+    "Novell.Directory.Ldap": "3.0.0",
+    "MailKit": "1.4.2.1",
+    "System.Security.Cryptography.X509Certificates": "4.1.0",
     "Microsoft.AspNetCore.Authentication.Cookies": "1.0.0",
     "Microsoft.AspNetCore.Diagnostics": "1.0.0",
     "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": "1.0.0",
