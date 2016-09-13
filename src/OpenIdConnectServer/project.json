@@ -9,7 +9,10 @@
     "Npgsql.EntityFrameworkCore.PostgreSQL": "1.0.0",
     "AspNet.Security.OAuth.Validation": "1.0.0-*",
     "OpenIddict": "1.0.0-*",
-    "Novell.Directory.Ldap": "3.0.0",
+    "Novell.Directory.Ldap": {
+      "version": "3.0.0",
+      "target": "project"
+    },
     "MailKit": "1.4.2.1",
     "System.Security.Cryptography.X509Certificates": "4.1.0",
     "Microsoft.AspNetCore.Authentication.Cookies": "1.0.0",
