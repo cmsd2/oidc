@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using CryptoHelper;
 using Microsoft.AspNetCore.Builder;
@@ -12,10 +15,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using OpenIdConnectServer.Data;
 using OpenIdConnectServer.Models;
 using OpenIdConnectServer.Services;
 using OpenIddict;
+using Directory = OpenIdConnectServer.Services.Directory;
 
 namespace OpenIdConnectServer
 {
@@ -48,17 +53,22 @@ namespace OpenIdConnectServer
             services.AddSingleton<IConfiguration>(Configuration);
 
             // Add framework services.
-            var connection = @"Server=(localdb)\mssqllocaldb;Database=OpenIdConnectServer;Trusted_Connection=True;";
-            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connection));
+//            var connection = @"Server=(localdb)\mssqllocaldb;Database=OpenIdConnectServer;Trusted_Connection=True;";
+//            var connection = Configuration.GetConnectionString("DefaultConnection");
+//            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connection));
 
-//            services.AddDbContext<ApplicationDbContext>(options =>
-//                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
                 
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddUserManager<OpenLdapUserManager<ApplicationUser>>()
                 .AddDefaultTokenProviders();
+
+
+            var certPassword = Configuration.GetSection("SigningKey").GetValue<string>("Password", null);
+            X509Certificate2 cert = new X509Certificate2(File.ReadAllBytes("cert.pfx"), certPassword);
 
             // Register the OpenIddict services, including the default Entity Framework stores.
             services.AddOpenIddict<ApplicationUser, ApplicationDbContext>()
@@ -78,7 +88,7 @@ namespace OpenIdConnectServer
                 // Register a new ephemeral key, that is discarded when the application
                 // shuts down. Tokens signed using this key are automatically invalidated.
                 // This method should only be used during development.
-                .AddEphemeralSigningKey();
+                .AddSigningCertificate(cert);
 
             services.AddMvc();
 
