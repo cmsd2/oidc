@@ -1,0 +1,34 @@
+# OpenId Connect Server
+
+Uses open-source libraries to implement a security token service with OpenId Connect and OAuth2.
+
+
+
+## Run in Dev environment
+
+Create a settings file called appsettings.Development.json
+For postgres, an example db connection string might be:
+
+```
+User ID=oidc;Password=supersecret;Host=localhost;Port=5432;Database=oidc;Pooling=true
+```
+
+Start a postgres instance like so (or some other similar method):
+
+```
+docker run -d -e POSTGRES_PASSWORD=wibble -p 5432:5432 --name oidc-postgres postgres
+```
+
+Create the user and database owned by the user:
+
+```
+./Scripts/init-db.sh
+```
+
+Run the dotnet app:
+
+```
+export ASPNETCORE_ENVIRONMENT=Development
+
+dotnet run
+```
