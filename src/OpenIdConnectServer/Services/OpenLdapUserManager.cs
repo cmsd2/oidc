@@ -4,17 +4,21 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenIdConnectServer.Models;
+using PaulMiami.AspNetCore.Authentication.Authenticator;
+using PaulMiami.AspNetCore.Identity.Authenticator;
 
 namespace OpenIdConnectServer.Services
 {
-    public class OpenLdapUserManager<TUser> : UserManager<TUser> where TUser : class, IUser
+    public class OpenLdapUserManager<TUser> : UserManager<TUser>, IAuthenticatorUserManager<TUser> where TUser : class, IUser
     {
         private readonly IDirectory _directory;
+        private readonly AuthenticatorUserManager<TUser> _authenticatorUserManager;
 
         public OpenLdapUserManager(
             IUserStore<TUser> store, 
@@ -26,12 +30,20 @@ namespace OpenIdConnectServer.Services
             IdentityErrorDescriber errors, 
             IServiceProvider services, 
             ILogger<UserManager<TUser>> logger,
-            IDirectory directory) 
+            IDirectory directory,
+            IDataProtectionProvider dataProtectionProvider,
+            IAuthenticatorService authenticatorService) 
 
             : base(store, optionsAccessor, passwordHasher, userValidators, 
                   passwordValidators, keyNormalizer, errors, services, logger)
         {
             _directory = directory;
+
+            _authenticatorUserManager = new AuthenticatorUserManager<TUser>(
+                store, optionsAccessor, passwordHasher, userValidators,
+                passwordValidators, keyNormalizer, errors, services,
+                logger, dataProtectionProvider, authenticatorService
+            );
         }
 
         protected override async Task<PasswordVerificationResult> VerifyPasswordAsync(IUserPasswordStore<TUser> store, TUser user, string password)
@@ -66,6 +78,30 @@ namespace OpenIdConnectServer.Services
         {
             Logger.LogInformation("find user by name {Name}", userName);
             return base.FindByNameAsync(userName);
+        }
+
+        public Task<bool> GetAuthenticatorEnabledAsync(TUser user)
+        {
+            return _authenticatorUserManager.GetAuthenticatorEnabledAsync(user);
+        }
+        public Task<AuthenticatorParams> GetAuthenticatorParamsAsync(TUser user)
+        {
+            return GetAuthenticatorParamsAsync(user);
+        }
+
+        public Task<bool> EnableAuthenticatorAsync(TUser user, Authenticator authenticator, string code, CancellationToken cancellationToken)
+        {
+            return _authenticatorUserManager.EnableAuthenticatorAsync(user, authenticator, code, cancellationToken);
+        }
+
+        public Task<bool> DisableAuthenticatorAsync(TUser user, string code, CancellationToken cancellationToken)
+        {
+            return _authenticatorUserManager.DisableAuthenticatorAsync(user, code, cancellationToken);
+        }
+
+        public Task<Authenticator> CreateAuthenticatorAsync(TUser user, CancellationToken cancellationToken)
+        {
+            return _authenticatorUserManager.CreateAuthenticatorAsync(user, cancellationToken);
         }
     }
 }

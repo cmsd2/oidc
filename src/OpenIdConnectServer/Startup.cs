@@ -20,6 +20,7 @@ using OpenIdConnectServer.Data;
 using OpenIdConnectServer.Models;
 using OpenIdConnectServer.Services;
 using OpenIddict;
+using PaulMiami.AspNetCore.Authentication.Authenticator;
 using Directory = OpenIdConnectServer.Services.Directory;
 
 namespace OpenIdConnectServer
@@ -64,6 +65,10 @@ namespace OpenIdConnectServer
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddUserManager<OpenLdapUserManager<ApplicationUser>>()
+                .AddUserStore<Services.AuthenticatorUserStore<ApplicationUser, 
+                    OpenIddictApplication, OpenIddictAuthorization, IdentityRole, 
+                    OpenIddictToken, ApplicationDbContext, string>>()
+                .AddTokenProvider<AuthenticatorTokenProvider<ApplicationUser>>("Totp")
                 .AddDefaultTokenProviders();
 
 
@@ -71,7 +76,10 @@ namespace OpenIdConnectServer
             X509Certificate2 cert = new X509Certificate2(File.ReadAllBytes("cert.pfx"), certPassword);
 
             // Register the OpenIddict services, including the default Entity Framework stores.
-            services.AddOpenIddict<ApplicationUser, ApplicationDbContext>()
+            services.AddOpenIddict<ApplicationUser, IdentityRole, ApplicationDbContext>()
+                .AddUserStore<Services.AuthenticatorUserStore<ApplicationUser, 
+                    OpenIddictApplication, OpenIddictAuthorization, IdentityRole, 
+                    OpenIddictToken, ApplicationDbContext, string>>()
                 // Enable the token endpoint (required to use the password flow).
                 .EnableTokenEndpoint("/connect/token")
                 .EnableAuthorizationEndpoint("/connect/authorize")
@@ -89,6 +97,10 @@ namespace OpenIdConnectServer
                 // shuts down. Tokens signed using this key are automatically invalidated.
                 // This method should only be used during development.
                 .AddSigningCertificate(cert);
+
+            services.AddAuthenticator(c => {
+                c.Issuer = "oidc.corp.mendeley.com";
+            });
 
             services.AddMvc();
 
