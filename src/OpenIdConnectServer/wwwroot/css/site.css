@@ -48,3 +48,11 @@ textarea {
     display: none
   }
 }
+
+dl.dl-horizontal.wide dt {
+    width: 200px;
+}
+
+dl.dl-horizontal.wide dd {
+    margin-left: 220px; 
+}

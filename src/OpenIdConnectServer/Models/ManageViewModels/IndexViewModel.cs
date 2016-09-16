@@ -17,5 +17,7 @@ namespace OpenIdConnectServer.Models.ManageViewModels
         public bool TwoFactor { get; set; }
 
         public bool BrowserRemembered { get; set; }
+
+        public string Email { get; set; }
     }
 }

@@ -47,6 +47,7 @@ namespace OpenIdConnectServer.Controllers
                 : message == ManageMessageId.Error ? "An error has occurred."
                 : message == ManageMessageId.AddPhoneSuccess ? "Your phone number was added."
                 : message == ManageMessageId.RemovePhoneSuccess ? "Your phone number was removed."
+                : message == ManageMessageId.ChangeEmailSuccess ? "Your email has been changed."
                 : "";
 
             var user = await GetCurrentUserAsync();
@@ -56,6 +57,7 @@ namespace OpenIdConnectServer.Controllers
             }
             var model = new IndexViewModel
             {
+                Email = await _userManager.GetEmailAsync(user),
                 HasPassword = await _userManager.HasPasswordAsync(user),
                 PhoneNumber = await _userManager.GetPhoneNumberAsync(user),
                 TwoFactor = await _userManager.GetTwoFactorEnabledAsync(user),
@@ -205,6 +207,73 @@ namespace OpenIdConnectServer.Controllers
         }
 
         //
+        // GET: /Manage/ChangeEmail
+        [HttpGet]
+        public IActionResult ChangeEmail()
+        {
+            return View();
+        }
+
+        //
+        // POST: /Manage/ChangeEmail
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeEmail(ChangeEmailViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+            // Generate the token and send it
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return View("Error");
+            }
+            var code = await _userManager.GenerateChangeEmailTokenAsync(user, model.Email);
+            await _emailSender.SendEmailAsync(model.Email, "Email change confirmation code", $"Your security code is: {code}");
+            return RedirectToAction(nameof(VerifyEmail), new { Email = model.Email });
+        }
+
+        //
+        // GET: /Manage/VerifyEmail
+        [HttpGet]
+        public async Task<IActionResult> VerifyEmail(string Email)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return View("Error");
+            }
+            return Email == null ? View("Error") : View(new VerifyEmailViewModel { Email = Email });
+        }
+
+        //
+        // POST: /Manage/VerifyEmail
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> VerifyEmail(VerifyEmailViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+            var user = await GetCurrentUserAsync();
+            if (user != null)
+            {
+                var result = await _userManager.ChangeEmailAsync(user, model.Email, model.Code);
+                if (result.Succeeded)
+                {
+                    await _signInManager.SignInAsync(user, isPersistent: false);
+                    return RedirectToAction(nameof(Index), new { Message = ManageMessageId.ChangeEmailSuccess });
+                }
+            }
+            // If we got this far, something failed, redisplay the form
+            ModelState.AddModelError(string.Empty, "Failed to verify email address");
+            return View(model);
+        }
+
+        //
         // GET: /Manage/ChangePassword
         [HttpGet]
         public IActionResult ChangePassword()
@@ -343,6 +412,7 @@ namespace OpenIdConnectServer.Controllers
             AddPhoneSuccess,
             AddLoginSuccess,
             ChangePasswordSuccess,
+            ChangeEmailSuccess,
             SetTwoFactorSuccess,
             SetPasswordSuccess,
             RemoveLoginSuccess,

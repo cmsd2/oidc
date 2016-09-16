@@ -6,10 +6,15 @@
 <h2>@ViewData["Title"].</h2>
 <p class="text-success">@ViewData["StatusMessage"]</p>
 
-<div>
+<div class="panel">
     <h4>Change your account settings</h4>
     <hr />
-    <dl class="dl-horizontal">
+    <dl class="dl-horizontal wide">
+        <dt>Email</dt>
+        <dd>
+            @(Model.Email ?? "None")
+            <a asp-controller="Manage" asp-action="ChangeEmail" class="btn-bracketed">Change</a>
+        </dd>
         <dt>Password:</dt>
         <dd>
             @if (Model.HasPassword)
