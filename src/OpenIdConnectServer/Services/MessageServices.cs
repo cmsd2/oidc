@@ -6,6 +6,7 @@ using MailKit.Net.Smtp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using MailKit.Security;
 
 namespace OpenIdConnectServer.Services
 {
@@ -39,10 +40,15 @@ namespace OpenIdConnectServer.Services
 
                 using (var client = new SmtpClient())
                 {
-                    await client.ConnectAsync(_settings.Smtp.Host, _settings.Smtp.Port, _settings.Smtp.Ssl);
+                    _logger.LogInformation("connecting to smtp gateway at {SmtpHost}", _settings.Smtp.Host);
+                    await client.ConnectAsync(_settings.Smtp.Host, _settings.Smtp.Port, SecureSocketOptionsFromTransportSecurity(_settings.Smtp.Security));
+                    _logger.LogInformation("authenticating with smtp gateway");
                     await client.AuthenticateAsync(_settings.Smtp.Username, _settings.Smtp.Password);
+                    _logger.LogInformation("sending message to smtp gateway");
                     await client.SendAsync(message);
+                    _logger.LogInformation("disconnecting from smtp gateway");
                     await client.DisconnectAsync(true);
+                    _logger.LogInformation("message sent to smtp gateway");
                 }
             }
             catch (Exception e)
@@ -55,6 +61,21 @@ namespace OpenIdConnectServer.Services
         public Task SendSmsAsync(string number, string message)
         {
             throw new NotSupportedException("sms messaging not supported");
+        }
+    
+
+
+        public static SecureSocketOptions SecureSocketOptionsFromTransportSecurity(TransportSecurity security) {
+            switch(security) {
+                case TransportSecurity.Tls:
+                    return SecureSocketOptions.StartTls;
+                case TransportSecurity.Ssl:
+                    return SecureSocketOptions.SslOnConnect;
+                case TransportSecurity.None:
+                    return SecureSocketOptions.None;
+                default:
+                    throw new Exception($"invalid smtp transport security parameter {security}");
+            }
         }
     }
 }

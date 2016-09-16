@@ -32,3 +32,19 @@ export ASPNETCORE_ENVIRONMENT=Development
 
 dotnet run
 ```
+
+Deploy to production
+
+TODO: make this better
+
+```
+rsync -acz -e ssh ~/path/to/oidc/solution admin@<ec2instance.private_ip>:
+```
+
+then dotnet restore and build as before, and run:
+
+```
+export ASPNETCORE_URLS="http://*:5000"
+
+dotnet run
+```

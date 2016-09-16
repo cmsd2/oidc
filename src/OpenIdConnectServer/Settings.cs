@@ -6,6 +6,12 @@ using OpenIdConnectServer.Services;
 
 namespace OpenIdConnectServer
 {
+    public enum TransportSecurity {
+        None,
+        Ssl,
+        Tls
+    }
+
     public class FromAddress
     {
         public string Name { get; set; }
@@ -16,7 +22,7 @@ namespace OpenIdConnectServer
     {
         public string Host { get; set; }
         public int Port { get; set; }
-        public bool Ssl { get; set; }
+        public TransportSecurity Security { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
         public FromAddress From { get; set; }
