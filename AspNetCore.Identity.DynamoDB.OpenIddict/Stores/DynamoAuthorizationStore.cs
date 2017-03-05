@@ -67,6 +67,32 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
             return applications?.FirstOrDefault();
         }
 
+        public async Task RevokeAsync(TAuthorization authorization, CancellationToken cancellationToken)
+        {
+            if (authorization == null)
+            {
+                throw new ArgumentNullException(nameof(authorization));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await _context.DeleteAsync(authorization, cancellationToken);
+        }
+
+        public async Task<TAuthorization> UpdateAsync(TAuthorization authorization, CancellationToken cancellationToken)
+        {
+            if (authorization == null)
+            {
+                throw new ArgumentNullException(nameof(authorization));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await _context.SaveAsync(authorization, cancellationToken);
+
+            return authorization;
+        }
+
         public Task<TAuthorization> FindByIdAsync(string identifier, CancellationToken cancellationToken)
         {
             if (identifier == null)

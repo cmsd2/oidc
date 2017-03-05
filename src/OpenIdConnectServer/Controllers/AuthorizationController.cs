@@ -22,6 +22,9 @@ using OpenIddict.Models;
 using OpenIdConnectServer.Models;
 using OpenIdConnectServer.Helpers;
 using AspNetCore.Identity.DynamoDB.OpenIddict;
+using AspNetCore.Identity.DynamoDB.OpenIddict.Models;
+using System.Threading;
+using OpenIdConnectServer.Services;
 
 namespace OpenIdConnectServer.Controllers
 {
@@ -30,19 +33,22 @@ namespace OpenIdConnectServer.Controllers
         private readonly OpenIddictApplicationManager<DynamoIdentityApplication> _applicationManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationAuthorizationManager<DynamoIdentityAuthorization> _authorizationManager;
 
         public AuthorizationController(
             OpenIddictApplicationManager<DynamoIdentityApplication> applicationManager,
             SignInManager<ApplicationUser> signInManager,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            OpenIddictAuthorizationManager<DynamoIdentityAuthorization> authorizationManager)
         {
             _applicationManager = applicationManager;
             _signInManager = signInManager;
             _userManager = userManager;
+            _authorizationManager = authorizationManager as ApplicationAuthorizationManager<DynamoIdentityAuthorization>;
         }
 
         [Authorize, HttpGet("~/connect/authorize")]
-        public async Task<IActionResult> Authorize(OpenIdConnectRequest request)
+        public async Task<IActionResult> Authorize(OpenIdConnectRequest request, CancellationToken cancellationToken)
         {
             Debug.Assert(request.IsAuthorizationRequest(),
                 "The OpenIddict binder for ASP.NET Core MVC is not registered. " +
@@ -57,6 +63,28 @@ namespace OpenIdConnectServer.Controllers
                     Error = OpenIdConnectConstants.Errors.InvalidClient,
                     ErrorDescription = "Details concerning the calling client application cannot be found in the database"
                 });
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return View("Error", new ErrorViewModel
+                {
+                    Error = OpenIdConnectConstants.Errors.ServerError,
+                    ErrorDescription = "An internal error has occurred"
+                });
+            }
+
+            var authorization = await _authorizationManager.FindAsync(user.Id, application.Id, cancellationToken);
+            if (authorization != null)
+            {
+                // if we didn't ask for any scopes that aren't already authorized
+                if (false == request.GetScopes().Except(authorization.Scopes).Any())
+                {
+                    var ticket = await CreateTicketAsync(request, user);
+
+                    return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+                }
             }
 
             // Flow the request_id to allow OpenIddict to restore
@@ -77,11 +105,21 @@ namespace OpenIdConnectServer.Controllers
 
         [Authorize, FormValueRequired("submit.Accept")]
         [HttpPost("~/connect/authorize"), ValidateAntiForgeryToken]
-        public async Task<IActionResult> Accept(OpenIdConnectRequest request)
+        public async Task<IActionResult> Accept(OpenIdConnectRequest request, CancellationToken cancellationToken)
         {
             Debug.Assert(request.IsAuthorizationRequest(),
                 "The OpenIddict binder for ASP.NET Core MVC is not registered. " +
                 "Make sure services.AddOpenIddict().AddMvcBinders() is correctly called.");
+
+            var application = await _applicationManager.FindByClientIdAsync(request.ClientId, HttpContext.RequestAborted);
+            if (application == null)
+            {
+                return View("Error", new ErrorViewModel
+                {
+                    Error = OpenIdConnectConstants.Errors.InvalidClient,
+                    ErrorDescription = "Details concerning the calling client application cannot be found in the database"
+                });
+            }
 
             // Retrieve the profile of the logged in user.
             var user = await _userManager.GetUserAsync(User);
@@ -96,6 +134,28 @@ namespace OpenIdConnectServer.Controllers
 
             // Create a new authentication ticket.
             var ticket = await CreateTicketAsync(request, user);
+
+            var authorization = await _authorizationManager.FindAsync(user.Id, application.Id, cancellationToken);
+            if (authorization != null)
+            {
+                if (false == request.GetScopes().Except(authorization.Scopes).Any())
+                {
+                    authorization.Scopes = authorization.Scopes.Union(request.GetScopes()).ToList();
+
+                    await _authorizationManager.UpdateAsync(authorization, cancellationToken);
+                }
+            }
+            else
+            {
+                authorization = new DynamoIdentityAuthorization()
+                {
+                    Application = application.Id,
+                    Subject = user.Id,
+                    Scopes = ticket.GetScopes().ToList()
+                };
+
+                await _authorizationManager.CreateAsync(authorization, cancellationToken);
+            }
 
             // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
             return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);

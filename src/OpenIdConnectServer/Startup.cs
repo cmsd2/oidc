@@ -113,6 +113,7 @@ namespace OpenIdConnectServer
 
             services.AddOpenIddict<DynamoIdentityApplication, DynamoIdentityAuthorization, DynamoIdentityScope, DynamoIdentityToken>()
                 .AddMvcBinders()
+                .AddAuthorizationManager<ApplicationAuthorizationManager<DynamoIdentityAuthorization>>()
 
                 // Enable the token endpoint (required to use the password flow).
                 .EnableTokenEndpoint("/connect/token")

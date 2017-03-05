@@ -28,8 +28,8 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict.Models
         [DynamoDBGlobalSecondaryIndexHashKey("Subject-Application-index")]
         public string Subject { get; set; }
 
-        public string Scope { get; set; }
+        public List<string> Scopes { get; set; } = new List<string>();
 
-        public IList<string> Tokens { get; set; }
+        public List<string> Tokens { get; set; } = new List<string>();
     }
 }

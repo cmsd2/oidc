@@ -46,10 +46,10 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
         public int? VersionNumber { get; set; }
 
         [DynamoDBIgnore]
-        public IList<string> Tokens { get; set; }
+        public List<string> Tokens { get; set; }
 
         [DynamoDBIgnore]
-        public IList<string> Authorizations { get; set; }
+        public List<string> Authorizations { get; set; }
 
         public void Delete()
         {
