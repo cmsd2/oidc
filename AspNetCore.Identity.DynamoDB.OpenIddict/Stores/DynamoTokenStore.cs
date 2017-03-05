@@ -100,7 +100,7 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
 
         public async Task RevokeAsync(TToken token, CancellationToken cancellationToken)
         {
-            await _context.DeleteAsync(token.Id);
+            await _context.DeleteAsync<TToken>(token.Id);
         }
 
         public Task SetAuthorizationAsync(TToken token, string identifier, CancellationToken cancellationToken)

@@ -30,6 +30,7 @@ using AspNetCore.Identity.DynamoDB.OpenIddict.Models;
 using OpenIddict.Core;
 using System.Threading;
 using PaulMiami.AspNetCore.Identity.Authenticator;
+using AspNet.Security.OpenIdConnect.Primitives;
 
 namespace OpenIdConnectServer
 {
@@ -60,6 +61,12 @@ namespace OpenIdConnectServer
             services.AddOptions();
             services.Configure<Settings>(Configuration);
             services.Configure<DynamoDbSettings>(Configuration.GetSection("DynamoDB"));
+            services.Configure<IdentityOptions>(options =>
+            {
+                options.ClaimsIdentity.UserNameClaimType = OpenIdConnectConstants.Claims.Name;
+                options.ClaimsIdentity.UserIdClaimType = OpenIdConnectConstants.Claims.Subject;
+                options.ClaimsIdentity.RoleClaimType = OpenIdConnectConstants.Claims.Role;
+            });
             services.AddSingleton<IConfiguration>(Configuration);
 
             // Add framework services.
@@ -83,6 +90,7 @@ namespace OpenIdConnectServer
             
             // for ApplicationUserManager
             services.AddSingleton<IPasswordVerifier, DefaultPasswordVerifier>();
+            //services.AddSingleton<IUserClaimsPrincipalFactory<ApplicationUser>, UserClaimsPrincipalFactory<ApplicationUser>>();
 
             services.AddIdentity<ApplicationUser, DynamoIdentityRole>()
                 .AddUserManager<ApplicationUserManager<ApplicationUser>>()
@@ -104,15 +112,18 @@ namespace OpenIdConnectServer
             X509Certificate2 cert = new X509Certificate2(File.ReadAllBytes("cert.pfx"), certPassword);
 
             services.AddOpenIddict<DynamoIdentityApplication, DynamoIdentityAuthorization, DynamoIdentityScope, DynamoIdentityToken>()
+                .AddMvcBinders()
+
                 // Enable the token endpoint (required to use the password flow).
                 .EnableTokenEndpoint("/connect/token")
                 .EnableAuthorizationEndpoint("/connect/authorize")
+                .EnableLogoutEndpoint("/connect/logout")
 
-                // Allow client applications to use the grant_type=password flow.
                 .AllowPasswordFlow()
                 .AllowAuthorizationCodeFlow()
                 .AllowRefreshTokenFlow()
                 .AllowImplicitFlow()
+                .AllowClientCredentialsFlow()
 
                 // During development, you can disable the HTTPS requirement.
                 .DisableHttpsRequirement()
@@ -210,7 +221,7 @@ namespace OpenIdConnectServer
                     ClientId = "YOUR_CLIENT_APP_ID",
                     DisplayName = "My client application",
                     RedirectUri = "http://localhost:5001" + "/signin-oidc",
-                    LogoutRedirectUri = "http://localhost:5001",
+                    LogoutRedirectUri = "http://localhost:5001" + "/signout-callback-oidc",
                     ClientSecret = Crypto.HashPassword("YOUR_CLIENT_APP_SECRET"),
                     Type = OpenIddictConstants.ClientTypes.Confidential
                 };

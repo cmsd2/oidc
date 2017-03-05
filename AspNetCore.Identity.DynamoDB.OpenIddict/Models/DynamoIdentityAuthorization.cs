@@ -8,7 +8,7 @@ using System.Text;
 namespace AspNetCore.Identity.DynamoDB.OpenIddict.Models
 {
     [DynamoDBTable(Constants.DefaultAuthorizationTableName)]
-    public class DynamoIdentityAuthorization : OpenIddictAuthorization<string, string, string>
+    public class DynamoIdentityAuthorization
     {
         public DynamoIdentityAuthorization()
         {
@@ -17,15 +17,19 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict.Models
         }
 
         [DynamoDBHashKey]
-        public override string Id { get => base.Id; set => base.Id = value; }
+        public string Id { get; set; }
 
         [DynamoDBProperty(typeof(DateTimeOffsetConverter))]
         public DateTimeOffset CreatedOn { get; set; }
 
         [DynamoDBGlobalSecondaryIndexRangeKey("Subject-Application-index")]
-        public override string Application { get => base.Application; set => base.Application = value; }
+        public string Application { get; set; }
 
         [DynamoDBGlobalSecondaryIndexHashKey("Subject-Application-index")]
-        public override string Subject { get => base.Subject; set => base.Subject = value; }
+        public string Subject { get; set; }
+
+        public string Scope { get; set; }
+
+        public IList<string> Tokens { get; set; }
     }
 }

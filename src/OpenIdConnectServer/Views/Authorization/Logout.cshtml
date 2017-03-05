@@ -1,0 +1,18 @@
+@model OpenIdConnectServer.Models.AuthorizationViewModels.LogoutViewModel
+@{
+    ViewData["Title"] = "Logout";
+}
+
+<div class="jumbotron">
+    <h1>Log out</h1>
+    <p class="lead text-left">Are you sure you want to sign out?</p>
+
+    <form asp-controller="Authorization" asp-action="Logout" method="post">
+        <input type="hidden" name="request_id" value="@Model.RequestId" />
+        <input type="hidden" name="post_logout_redirect_uri" value="@Model.PostLogoutRedirectUri" />
+        <input type="hidden" name="id_token_hint" value="@Model.IdTokenHint" />
+        <input type="hidden" name="state" value="@Model.State" />
+
+        <input class="btn btn-lg btn-success" name="Confirm" type="submit" value="Yes" />
+    </form>
+</div>

@@ -1,0 +1,26 @@
+@model OpenIdConnectServer.Models.AuthorizationViewModels.AuthorizeViewModel
+@{
+    ViewData["Title"] = "Authorize Application";
+}
+
+<div class="jumbotron">
+    <h1>Authorization</h1>
+
+    <p class="lead text-left">Do you want to grant <strong>@Model.ApplicationName</strong> access to your data? (scopes requested: @Model.Scope)</p>
+
+    <form method="post" action="@Context.Request.Path">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="request_id" value="@Model.RequestId" />
+        <input type="hidden" name="client_id" value="@Model.ClientId" />
+        <input type="hidden" name="response_type" value="@Model.ResponseType" />
+        <input type="hidden" name="response_mode" value="@Model.ResponseMode" />
+        <input type="hidden" name="state" value="@Model.State" />
+        <input type="hidden" name="redirect_uri" value="@Model.RedirectUri" />
+        <input type="hidden" name="scope" value="@Model.Scope" />
+        <input type="hidden" name="nonce" value="@Model.Nonce" />
+
+        <input class="btn btn-lg btn-success" name="submit.Accept" type="submit" value="Yes" />
+        <input class="btn btn-lg btn-danger" name="submit.Deny" type="submit" value="No" />
+    </form>
+</div>

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace AspNetCore.Identity.DynamoDB.OpenIddict.Models
 {
-    public class DynamoIdentityScope : OpenIddictScope
+    public class DynamoIdentityScope
     {
     }
 }
