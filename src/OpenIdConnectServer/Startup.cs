@@ -16,12 +16,20 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using OpenIdConnectServer.Data;
 using OpenIdConnectServer.Models;
 using OpenIdConnectServer.Services;
 using OpenIddict;
 using PaulMiami.AspNetCore.Authentication.Authenticator;
 using Directory = OpenIdConnectServer.Services.Directory;
+using AspNetCore.Identity.DynamoDB.OpenIddict;
+using AspNetCore.Identity.DynamoDB;
+using Microsoft.Extensions.Options;
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
+using AspNetCore.Identity.DynamoDB.OpenIddict.Models;
+using OpenIddict.Core;
+using System.Threading;
+using PaulMiami.AspNetCore.Identity.Authenticator;
 
 namespace OpenIdConnectServer
 {
@@ -51,35 +59,51 @@ namespace OpenIdConnectServer
         {
             services.AddOptions();
             services.Configure<Settings>(Configuration);
+            services.Configure<DynamoDbSettings>(Configuration.GetSection("DynamoDB"));
             services.AddSingleton<IConfiguration>(Configuration);
 
             // Add framework services.
-//            var connection = @"Server=(localdb)\mssqllocaldb;Database=OpenIdConnectServer;Trusted_Connection=True;";
-//            var connection = Configuration.GetConnectionString("DefaultConnection");
-//            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connection));
+            //            var connection = @"Server=(localdb)\mssqllocaldb;Database=OpenIdConnectServer;Trusted_Connection=True;";
+            //            var connection = Configuration.GetConnectionString("DefaultConnection");
+            //            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connection));
 
-            services.AddDbContext<ApplicationDbContext>(options =>
+            /*services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
-                
+                */
 
-            services.AddIdentity<ApplicationUser, IdentityRole>()
+
+            /*services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddUserManager<OpenLdapUserManager<ApplicationUser>>()
-                .AddUserStore<Services.AuthenticatorUserStore<ApplicationUser, 
-                    OpenIddictApplication, OpenIddictAuthorization, IdentityRole, 
+                .AddUserStore<ApplicationUserStore<ApplicationUser,
+                    OpenIddictApplication, OpenIddictAuthorization, IdentityRole,
                     OpenIddictToken, ApplicationDbContext, string>>()
                 .AddTokenProvider<AuthenticatorTokenProvider<ApplicationUser>>("Totp")
+                .AddDefaultTokenProviders();*/
+            
+            // for ApplicationUserManager
+            services.AddSingleton<IPasswordVerifier, DefaultPasswordVerifier>();
+
+            services.AddIdentity<ApplicationUser, DynamoIdentityRole>()
+                .AddUserManager<ApplicationUserManager<ApplicationUser>>()
+                .AddTokenProvider<Services.AuthenticatorTokenProvider<ApplicationUser>>("Authenticator")
                 .AddDefaultTokenProviders();
 
+            services.AddDynamoDBIdentity<ApplicationUser, DynamoIdentityRole>()
+                .AddUserStore<ApplicationUserStore<ApplicationUser, DynamoIdentityRole>>()
+                .AddRoleStore()
+                .AddRoleUsersStore();
+
+            services.AddDynamoDBOpenIddictIdentity()
+                .AddApplicationStore()
+                .AddAuthorizationStore()
+                .AddScopeStore()
+                .AddTokenStore();
 
             var certPassword = Configuration.GetSection("SigningKey").GetValue<string>("Password", null);
             X509Certificate2 cert = new X509Certificate2(File.ReadAllBytes("cert.pfx"), certPassword);
 
-            // Register the OpenIddict services, including the default Entity Framework stores.
-            services.AddOpenIddict<ApplicationUser, IdentityRole, ApplicationDbContext>()
-                .AddUserStore<Services.AuthenticatorUserStore<ApplicationUser, 
-                    OpenIddictApplication, OpenIddictAuthorization, IdentityRole, 
-                    OpenIddictToken, ApplicationDbContext, string>>()
+            services.AddOpenIddict<DynamoIdentityApplication, DynamoIdentityAuthorization, DynamoIdentityScope, DynamoIdentityToken>()
                 // Enable the token endpoint (required to use the password flow).
                 .EnableTokenEndpoint("/connect/token")
                 .EnableAuthorizationEndpoint("/connect/authorize")
@@ -137,34 +161,61 @@ namespace OpenIdConnectServer
 
             app.UseOpenIddict();
 
-            using (var context = app.ApplicationServices.GetRequiredService<ApplicationDbContext>())
-            {
-                context.Database.EnsureCreated();
-
-                // Add Mvc.Client to the known applications.
-                if (!context.Applications.Any())
+            var options = app.ApplicationServices.GetService<IOptions<DynamoDbSettings>>();
+            var client = env.IsDevelopment()
+                ? new AmazonDynamoDBClient(new AmazonDynamoDBConfig
                 {
-                    // Note: when using the introspection middleware, your resource server
-                    // MUST be registered as an OAuth2 client and have valid credentials.
-                    // 
-                    // context.Applications.Add(new Application {
-                    //     Id = "resource_server",
-                    //     DisplayName = "Main resource server",
-                    //     Secret = "875sqd4s5d748z78z7ds1ff8zz8814ff88ed8ea4z4zzd"
-                    // });
+                    ServiceURL = options.Value.ServiceUrl
+                })
+                : new AmazonDynamoDBClient();
+            var context = new DynamoDBContext(client);
 
-                    context.Applications.Add(new OpenIddictApplication
-                    {
-                        ClientId = "YOUR_CLIENT_APP_ID",
-                        DisplayName = "My client application",
-                        RedirectUri = "http://localhost:5001" + "/signin-oidc",
-                        LogoutRedirectUri = "http://localhost:5001",
-                        ClientSecret = Crypto.HashPassword("YOUR_CLIENT_APP_SECRET"),
-                        Type = OpenIddictConstants.ClientTypes.Confidential
-                    });
+            var userStore = app.ApplicationServices
+                .GetService<IUserStore<ApplicationUser>>()
+                as DynamoUserStore<ApplicationUser, DynamoIdentityRole>;
+            var roleStore = app.ApplicationServices
+                .GetService<IRoleStore<DynamoIdentityRole>>()
+                as DynamoRoleStore<DynamoIdentityRole>;
+            var roleUsersStore = app.ApplicationServices
+                .GetService<DynamoRoleUsersStore<DynamoIdentityRole, ApplicationUser>>();
+            var applicationsStore = app.ApplicationServices
+                .GetService<IOpenIddictApplicationStore<DynamoIdentityApplication>>()
+                as DynamoApplicationStore<DynamoIdentityApplication, DynamoIdentityToken>;
+            var authorizationStore = app.ApplicationServices
+                .GetService<IOpenIddictAuthorizationStore<DynamoIdentityAuthorization>>()
+                as DynamoAuthorizationStore<DynamoIdentityAuthorization>;
+            var scopeStore = app.ApplicationServices
+                .GetService<IOpenIddictScopeStore<DynamoIdentityScope>>()
+                as DynamoScopeStore<DynamoIdentityScope>;
+            var tokenStore = app.ApplicationServices
+                .GetService<IOpenIddictTokenStore<DynamoIdentityToken>>()
+                as DynamoTokenStore<DynamoIdentityToken>;
+                
 
-                    context.SaveChanges();
-                }
+            userStore.EnsureInitializedAsync(client, context, options.Value.UsersTableName).Wait();
+            roleStore.EnsureInitializedAsync(client, context, options.Value.RolesTableName).Wait();
+            roleUsersStore.EnsureInitializedAsync(client, context, options.Value.RoleUsersTableName).Wait();
+            applicationsStore.EnsureInitializedAsync(client, context, options.Value.ApplicationsTableName).Wait();
+            authorizationStore.EnsureInitializedAsync(client, context, options.Value.AuthorizationsTableName).Wait();
+            scopeStore.EnsureInitializedAsync(client, context, options.Value.ScopesTableName).Wait();
+            tokenStore.EnsureInitializedAsync(client, context, options.Value.TokensTableName).Wait();
+
+
+            var clientApp = applicationsStore.FindByClientIdAsync("YOUR_CLIENT_APP_ID", default(CancellationToken)).Result;
+
+            if (clientApp == null)
+            {
+                clientApp = new DynamoIdentityApplication
+                {
+                    ClientId = "YOUR_CLIENT_APP_ID",
+                    DisplayName = "My client application",
+                    RedirectUri = "http://localhost:5001" + "/signin-oidc",
+                    LogoutRedirectUri = "http://localhost:5001",
+                    ClientSecret = Crypto.HashPassword("YOUR_CLIENT_APP_SECRET"),
+                    Type = OpenIddictConstants.ClientTypes.Confidential
+                };
+
+                applicationsStore.CreateAsync(clientApp, default(CancellationToken)).Wait();
             }
 
             // Add external authentication middleware below. To configure them please see http://go.microsoft.com/fwlink/?LinkID=532715

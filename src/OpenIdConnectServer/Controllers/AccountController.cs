@@ -8,10 +8,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
-using OpenIdConnectServer.Data;
 using OpenIdConnectServer.Models;
 using OpenIdConnectServer.Models.AccountViewModels;
 using OpenIdConnectServer.Services;
+using AspNetCore.Identity.DynamoDB.Models;
 
 namespace OpenIdConnectServer.Controllers
 {
@@ -23,22 +23,20 @@ namespace OpenIdConnectServer.Controllers
         private readonly IEmailSender _emailSender;
         private readonly ISmsSender _smsSender;
         private readonly ILogger _logger;
-        private readonly ApplicationDbContext _applicationDbContext;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IEmailSender emailSender,
             ISmsSender smsSender,
-            ILoggerFactory loggerFactory,
-            ApplicationDbContext applicationDbContext)
+            ILoggerFactory loggerFactory
+            )
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
             _smsSender = smsSender;
             _logger = loggerFactory.CreateLogger<AccountController>();
-            _applicationDbContext = applicationDbContext;
         }
 
         //
@@ -109,7 +107,7 @@ namespace OpenIdConnectServer.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser { UserName = model.Email, Email = new DynamoUserEmail(model.Email) };
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
@@ -211,7 +209,7 @@ namespace OpenIdConnectServer.Controllers
                 {
                     return View("ExternalLoginFailure");
                 }
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser { UserName = model.Email, Email = new DynamoUserEmail(model.Email) };
                 var result = await _userManager.CreateAsync(user);
                 if (result.Succeeded)
                 {
@@ -373,21 +371,24 @@ namespace OpenIdConnectServer.Controllers
                 return View("Error");
             }
 
-            // Generate the token and send it
-            var code = await _userManager.GenerateTwoFactorTokenAsync(user, model.SelectedProvider);
-            if (string.IsNullOrWhiteSpace(code))
+            if (model.SelectedProvider != "Authenticator")
             {
-                return View("Error");
-            }
+                // Generate the token and send it
+                var code = await _userManager.GenerateTwoFactorTokenAsync(user, model.SelectedProvider);
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    return View("Error");
+                }
 
-            var message = "Your security code is: " + code;
-            if (model.SelectedProvider == "Email")
-            {
-                await _emailSender.SendEmailAsync(await _userManager.GetEmailAsync(user), "Security Code", message);
-            }
-            else if (model.SelectedProvider == "Phone")
-            {
-                await _smsSender.SendSmsAsync(await _userManager.GetPhoneNumberAsync(user), message);
+                var message = "Your security code is: " + code;
+                if (model.SelectedProvider == "Email")
+                {
+                    await _emailSender.SendEmailAsync(await _userManager.GetEmailAsync(user), "Security Code", message);
+                }
+                else if (model.SelectedProvider == "Phone")
+                {
+                    await _smsSender.SendSmsAsync(await _userManager.GetPhoneNumberAsync(user), message);
+                }
             }
 
             return RedirectToAction(nameof(VerifyCode), new { Provider = model.SelectedProvider, ReturnUrl = model.ReturnUrl, RememberMe = model.RememberMe });

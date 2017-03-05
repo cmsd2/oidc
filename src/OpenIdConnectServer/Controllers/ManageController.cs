@@ -9,13 +9,15 @@ using Microsoft.Extensions.Logging;
 using OpenIdConnectServer.Models;
 using OpenIdConnectServer.Models.ManageViewModels;
 using OpenIdConnectServer.Services;
+using System.Threading;
+using PaulMiami.AspNetCore.Identity.Authenticator;
 
 namespace OpenIdConnectServer.Controllers
 {
     [Authorize]
     public class ManageController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationUserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IEmailSender _emailSender;
         private readonly ISmsSender _smsSender;
@@ -28,7 +30,7 @@ namespace OpenIdConnectServer.Controllers
         ISmsSender smsSender,
         ILoggerFactory loggerFactory)
         {
-            _userManager = userManager;
+            _userManager = userManager as ApplicationUserManager<ApplicationUser>;
             _signInManager = signInManager;
             _emailSender = emailSender;
             _smsSender = smsSender;
@@ -48,6 +50,8 @@ namespace OpenIdConnectServer.Controllers
                 : message == ManageMessageId.AddPhoneSuccess ? "Your phone number was added."
                 : message == ManageMessageId.RemovePhoneSuccess ? "Your phone number was removed."
                 : message == ManageMessageId.ChangeEmailSuccess ? "Your email has been changed."
+                : message == ManageMessageId.AddAuthenticator ? "Authenticator was added."
+                : message == ManageMessageId.RemoveAuthenticator ? "Authenticator was removed."
                 : "";
 
             var user = await GetCurrentUserAsync();
@@ -62,7 +66,8 @@ namespace OpenIdConnectServer.Controllers
                 PhoneNumber = await _userManager.GetPhoneNumberAsync(user),
                 TwoFactor = await _userManager.GetTwoFactorEnabledAsync(user),
                 Logins = await _userManager.GetLoginsAsync(user),
-                BrowserRemembered = await _signInManager.IsTwoFactorClientRememberedAsync(user)
+                BrowserRemembered = await _signInManager.IsTwoFactorClientRememberedAsync(user),
+                AuthenticatorEnabled = await _userManager.GetAuthenticatorEnabledAsync(user)
             };
             return View(model);
         }
@@ -397,6 +402,83 @@ namespace OpenIdConnectServer.Controllers
             return RedirectToAction(nameof(ManageLogins), new { Message = message });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> AddAuthenticator(CancellationToken cancellationToken)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return View("Error");
+            }
+            var authenticator = await _userManager.CreateAuthenticatorAsync(user, cancellationToken);
+            var viewModel = new AddAuthenticatorViewModel
+            {
+                Uri = authenticator.Uri,
+                HashAlgorithm = authenticator.HashAlgorithm,
+                NumberOfDigits = authenticator.NumberOfDigits,
+                PeriodInSeconds = authenticator.PeriodInSeconds,
+                Secret = Convert.ToBase64String(authenticator.Secret)
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddAuthenticator(AddAuthenticatorViewModel model, CancellationToken cancellationToken)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return View("Error");
+            }
+
+            if (ModelState.IsValid)
+            {
+                var authenticator = new Authenticator
+                {
+                    HashAlgorithm = model.HashAlgorithm,
+                    Secret = Convert.FromBase64String(model.Secret),
+                    NumberOfDigits = model.NumberOfDigits,
+                    PeriodInSeconds = model.PeriodInSeconds
+                };
+
+                if (await _userManager.EnableAuthenticatorAsync(user, authenticator, model.Code, cancellationToken))
+                {
+                    return RedirectToAction(nameof(Index), new { Message = ManageMessageId.AddAuthenticator });
+                }
+                ModelState.AddModelError("Code", "Invalid code");
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult RemoveAuthenticator()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveAuthenticator(RemoveAuthenticatorViewModel model, CancellationToken cancellationToken)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                return View("Error");
+            }
+
+            if (ModelState.IsValid)
+            {
+                if (await _userManager.DisableAuthenticatorAsync(user, model.Code, cancellationToken))
+                {
+                    return RedirectToAction(nameof(Index), new { Message = ManageMessageId.RemoveAuthenticator });
+                }
+                ModelState.AddModelError("Code", "Invalid code");
+            }
+
+            return View(model);
+        }
+        
         #region Helpers
 
         private void AddErrors(IdentityResult result)
@@ -409,12 +491,14 @@ namespace OpenIdConnectServer.Controllers
 
         public enum ManageMessageId
         {
+            AddAuthenticator,
             AddPhoneSuccess,
             AddLoginSuccess,
             ChangePasswordSuccess,
             ChangeEmailSuccess,
             SetTwoFactorSuccess,
             SetPasswordSuccess,
+            RemoveAuthenticator,
             RemoveLoginSuccess,
             RemovePhoneSuccess,
             Error

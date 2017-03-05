@@ -53,6 +53,18 @@
                 }*@
         </dd>
 
+        <dt>Authenticator:</dt>
+        <dd>
+            @if (Model.AuthenticatorEnabled)
+            {
+                <a asp-controller="Manage" asp-action="RemoveAuthenticator" class="btn-bracketed">Remove</a>
+            }
+            else
+            {
+                <a asp-controller="Manage" asp-action="AddAuthenticator" class="btn-bracketed">Add</a>
+            }
+        </dd>
+
         <dt>Two-Factor Authentication:</dt>
         <dd>
             @if (Model.TwoFactor)
