@@ -31,6 +31,8 @@ using OpenIddict.Core;
 using System.Threading;
 using PaulMiami.AspNetCore.Identity.Authenticator;
 using AspNet.Security.OpenIdConnect.Primitives;
+using System.IdentityModel.Tokens.Jwt;
+using AspNetCore.Identity.DynamoDB.OpenIddict.Stores;
 
 namespace OpenIdConnectServer
 {
@@ -106,6 +108,7 @@ namespace OpenIdConnectServer
                 .AddApplicationStore()
                 .AddAuthorizationStore()
                 .AddScopeStore()
+                .AddDeviceCodeStore()
                 .AddTokenStore();
 
             var certPassword = Configuration.GetSection("SigningKey").GetValue<string>("Password", null);
@@ -114,6 +117,7 @@ namespace OpenIdConnectServer
             services.AddOpenIddict<DynamoIdentityApplication, DynamoIdentityAuthorization, DynamoIdentityScope, DynamoIdentityToken>()
                 .AddMvcBinders()
                 .AddAuthorizationManager<ApplicationAuthorizationManager<DynamoIdentityAuthorization>>()
+                .UseJsonWebTokens()
 
                 // Enable the token endpoint (required to use the password flow).
                 .EnableTokenEndpoint("/connect/token")
@@ -125,13 +129,13 @@ namespace OpenIdConnectServer
                 .AllowRefreshTokenFlow()
                 .AllowImplicitFlow()
                 .AllowClientCredentialsFlow()
+                .AllowDeviceCodeFlow()
 
                 // During development, you can disable the HTTPS requirement.
                 .DisableHttpsRequirement()
 
-                // Register a new ephemeral key, that is discarded when the application
-                // shuts down. Tokens signed using this key are automatically invalidated.
-                // This method should only be used during development.
+                .UseJsonWebTokens()
+                
                 .AddSigningCertificate(cert);
 
             services.AddAuthenticator(c => {
@@ -173,6 +177,21 @@ namespace OpenIdConnectServer
 
             app.UseOpenIddict();
 
+            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+            JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
+
+            app.UseJwtBearerAuthentication(new JwtBearerOptions
+            {
+                Authority = "http://localhost:5000/",
+                Audience = "resource_server", // see also AuthorizationController.CreateTicketAsync and ticket.SetResources
+                RequireHttpsMetadata = false,
+                TokenValidationParameters = new TokenValidationParameters
+                {
+                    NameClaimType = OpenIdConnectConstants.Claims.Subject,
+                    RoleClaimType = OpenIdConnectConstants.Claims.Role
+                }
+            });
+
             var options = app.ApplicationServices.GetService<IOptions<DynamoDbSettings>>();
             var client = env.IsDevelopment()
                 ? new AmazonDynamoDBClient(new AmazonDynamoDBConfig
@@ -199,6 +218,8 @@ namespace OpenIdConnectServer
             var scopeStore = app.ApplicationServices
                 .GetService<IOpenIddictScopeStore<DynamoIdentityScope>>()
                 as DynamoScopeStore<DynamoIdentityScope>;
+            var deviceCodeStore = app.ApplicationServices
+                .GetService<DynamoDeviceCodeStore<DynamoIdentityDeviceCode>>();
             var tokenStore = app.ApplicationServices
                 .GetService<IOpenIddictTokenStore<DynamoIdentityToken>>()
                 as DynamoTokenStore<DynamoIdentityToken>;
@@ -210,6 +231,7 @@ namespace OpenIdConnectServer
             applicationsStore.EnsureInitializedAsync(client, context, options.Value.ApplicationsTableName).Wait();
             authorizationStore.EnsureInitializedAsync(client, context, options.Value.AuthorizationsTableName).Wait();
             scopeStore.EnsureInitializedAsync(client, context, options.Value.ScopesTableName).Wait();
+            deviceCodeStore.EnsureInitializedAsync(client, context, options.Value.DeviceCodesTableName).Wait();
             tokenStore.EnsureInitializedAsync(client, context, options.Value.TokensTableName).Wait();
 
 

@@ -25,6 +25,7 @@ using AspNetCore.Identity.DynamoDB.OpenIddict;
 using AspNetCore.Identity.DynamoDB.OpenIddict.Models;
 using System.Threading;
 using OpenIdConnectServer.Services;
+using AspNetCore.Identity.DynamoDB.OpenIddict.Stores;
 
 namespace OpenIdConnectServer.Controllers
 {
@@ -33,18 +34,21 @@ namespace OpenIdConnectServer.Controllers
         private readonly OpenIddictApplicationManager<DynamoIdentityApplication> _applicationManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly DynamoDeviceCodeStore<DynamoIdentityDeviceCode> _deviceCodesStore;
         private readonly ApplicationAuthorizationManager<DynamoIdentityAuthorization> _authorizationManager;
 
         public AuthorizationController(
             OpenIddictApplicationManager<DynamoIdentityApplication> applicationManager,
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
-            OpenIddictAuthorizationManager<DynamoIdentityAuthorization> authorizationManager)
+            OpenIddictAuthorizationManager<DynamoIdentityAuthorization> authorizationManager,
+            DynamoDeviceCodeStore<DynamoIdentityDeviceCode> deviceCodesStore)
         {
             _applicationManager = applicationManager;
             _signInManager = signInManager;
             _userManager = userManager;
             _authorizationManager = authorizationManager as ApplicationAuthorizationManager<DynamoIdentityAuthorization>;
+            _deviceCodesStore = deviceCodesStore;
         }
 
         [Authorize, HttpGet("~/connect/authorize")]
@@ -100,6 +104,142 @@ namespace OpenIdConnectServer.Controllers
                 RedirectUri = request.RedirectUri,
                 State = request.State,
                 Nonce = request.Nonce
+            });
+        }
+
+        [Authorize, HttpGet("~/connect/authorize_device")]
+        public IActionResult ConnectDeviceCode()
+        {
+            return View();
+        }
+
+        [Authorize]
+        [HttpPost("~/connect/authorize_device"), ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConnectDeviceCodeConfirm(AuthorizeDeviceCodeViewModel model, CancellationToken cancellationToken)
+        {
+            var deviceCode = await _deviceCodesStore.FindByUserCodeAsync(model.UserCode, cancellationToken);
+            if (deviceCode == null)
+            {
+                ModelState.AddModelError(string.Empty, "Unrecognised or expired code.");
+                return View("ConnectDeviceCode", model);
+            }
+
+            var application = await _applicationManager.FindByIdAsync(deviceCode.Application, HttpContext.RequestAborted);
+            if (application == null)
+            {
+                return View("Error", new ErrorViewModel
+                {
+                    Error = OpenIdConnectConstants.Errors.InvalidClient,
+                    ErrorDescription = "Details concerning the calling client application cannot be found in the database"
+                });
+            }
+
+            return View(new AuthorizeDeviceCodeViewModel
+            {
+                UserCode = deviceCode.UserCode,
+                Scope = string.Join(" ", deviceCode.Scopes),
+                ApplicationName = application.DisplayName
+            });
+        }
+
+        [Authorize, FormValueRequired("submit.Accept")]
+        [HttpPost("~/connect/device_code_authorization"), ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcceptDevice(AuthorizeDeviceCodeViewModel request, CancellationToken cancellationToken)
+        {
+            var deviceCode = await _deviceCodesStore.FindByUserCodeAsync(request.UserCode, cancellationToken);
+            if (deviceCode == null)
+            {
+                ModelState.AddModelError(string.Empty, "Unrecognised or expired code.");
+                return View("ConnectDeviceCode", request);
+            }
+
+            var application = await _applicationManager.FindByIdAsync(deviceCode.Application, HttpContext.RequestAborted);
+            if (application == null)
+            {
+                return View("Error", new ErrorViewModel
+                {
+                    Error = OpenIdConnectConstants.Errors.InvalidClient,
+                    ErrorDescription = "Details concerning the calling client application cannot be found in the database"
+                });
+            }
+
+            // Retrieve the profile of the logged in user.
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return View("Error", new ErrorViewModel
+                {
+                    Error = OpenIdConnectConstants.Errors.ServerError,
+                    ErrorDescription = "An internal error has occurred"
+                });
+            }
+            
+            // Create a new authentication ticket.
+            var ticket = await CreateTicketAsync(request, user);
+            
+            var authorization = await _authorizationManager.FindAsync(user.Id, application.Id, cancellationToken);
+            if (authorization != null)
+            {
+                if (false == request.GetScopes().Except(authorization.Scopes).Any())
+                {
+                    authorization.Scopes = authorization.Scopes.Union(request.GetScopes()).ToList();
+
+                    await _authorizationManager.UpdateAsync(authorization, cancellationToken);
+                }
+            }
+            else
+            {
+                authorization = new DynamoIdentityAuthorization()
+                {
+                    Application = application.Id,
+                    Subject = user.Id,
+                    Scopes = ticket.GetScopes().ToList()
+                };
+
+                await _authorizationManager.CreateAsync(authorization, cancellationToken);
+            }
+
+            await _deviceCodesStore.Authorize(deviceCode, user.Id, cancellationToken);
+
+
+            return View("AuthorizedDeviceCode", new AuthorizedDeviceResultViewModel
+            {
+                ApplicationName = application.DisplayName,
+                Scope = string.Join(" ", deviceCode.Scopes),
+                Authorized = true
+            });
+        }
+
+        [Authorize, FormValueRequired("submit.Deny")]
+        [HttpPost("~/connect/device_code_authorization"), ValidateAntiForgeryToken]
+        public async Task<IActionResult> DenyDevice(AuthorizeDeviceCodeViewModel request, CancellationToken cancellationToken)
+        {
+            var deviceCode = await _deviceCodesStore.FindByUserCodeAsync(request.UserCode, cancellationToken);
+            if (deviceCode == null)
+            {
+                ModelState.AddModelError(string.Empty, "Unrecognised or expired code.");
+                return View("ConnectDeviceCode", request);
+            }
+
+            var application = await _applicationManager.FindByIdAsync(deviceCode.Application, HttpContext.RequestAborted);
+            if (application == null)
+            {
+                return View("Error", new ErrorViewModel
+                {
+                    Error = OpenIdConnectConstants.Errors.InvalidClient,
+                    ErrorDescription = "Details concerning the calling client application cannot be found in the database"
+                });
+            }
+
+            await _deviceCodesStore.Revoke(deviceCode.Id, cancellationToken);
+
+            // Notify OpenIddict that the authorization grant has been denied by the resource owner
+            // to redirect the user agent to the client application using the appropriate response_mode.
+            return View("AuthorizedDeviceCode", new AuthorizedDeviceResultViewModel
+            {
+                ApplicationName = application.DisplayName,
+                Scope = string.Join(" ", deviceCode.Scopes),
+                Authorized = false
             });
         }
 
@@ -197,14 +337,90 @@ namespace OpenIdConnectServer.Controllers
             return SignOut(OpenIdConnectServerDefaults.AuthenticationScheme);
         }
 
+        [HttpPost("~/connect/device_token"), Produces("application/json")]
+        public async Task<IActionResult> MintDeviceCode(string response_type, string client_id, string client_secret, string scope, CancellationToken cancellationToken)
+        {
+            var application = await _applicationManager.FindByClientIdAsync(client_id, HttpContext.RequestAborted);
+            if (application == null)
+            {
+                return View("Error", new ErrorViewModel
+                {
+                    Error = OpenIdConnectConstants.Errors.InvalidClient,
+                    ErrorDescription = "Details concerning the calling client application cannot be found in the database"
+                });
+            }
+
+            var deviceCode = await _deviceCodesStore.CreateAsync(application.Id, scope.Split(' ').ToList(), cancellationToken);
+
+            // issue user and device codes
+            return Json(new DeviceCodeFlowViewModel
+            {
+                VerificationUri = Url.Action("AuthorizeDevice"),
+                UserCode = deviceCode.UserCode,
+                DeviceCode = deviceCode.DeviceCode,
+                Interval = 3
+            });
+        }
+
         [HttpPost("~/connect/token"), Produces("application/json")]
-        public async Task<IActionResult> Exchange(OpenIdConnectRequest request)
+        public async Task<IActionResult> Exchange(string device_code, OpenIdConnectRequest request, CancellationToken cancellationToken)
         {
             Debug.Assert(request.IsTokenRequest(),
                 "The OpenIddict binder for ASP.NET Core MVC is not registered. " +
                 "Make sure services.AddOpenIddict().AddMvcBinders() is correctly called.");
+            
+            if (request.IsDeviceCodeGrantType())
+            {
+                if (request.ClientId == null)
+                {
+                    return BadRequest(new OpenIdConnectResponse
+                    {
+                        Error = OpenIdConnectConstants.Errors.InvalidClient,
+                        ErrorDescription = "Missing required parameter client_id."
+                    });
+                }
 
-            if (request.IsAuthorizationCodeGrantType())
+                // exchange device code for tokens
+                var application = await _applicationManager.FindByClientIdAsync(request.ClientId, HttpContext.RequestAborted);
+                if (application == null)
+                {
+                    return View("Error", new ErrorViewModel
+                    {
+                        Error = OpenIdConnectConstants.Errors.InvalidClient,
+                        ErrorDescription = "Details concerning the calling client application cannot be found in the database"
+                    });
+                }
+
+                var deviceCode = await _deviceCodesStore.FindByDeviceCodeAsync(device_code, cancellationToken);
+                var user = await _userManager.FindByIdAsync(deviceCode.Subject);
+
+                await _deviceCodesStore.Revoke(deviceCode.Id, cancellationToken);
+
+                // Ensure the user is still allowed to sign in.
+                if (!await _signInManager.CanSignInAsync(user))
+                {
+                    return BadRequest(new OpenIdConnectResponse
+                    {
+                        Error = OpenIdConnectConstants.Errors.InvalidGrant,
+                        ErrorDescription = "The user is no longer allowed to sign in."
+                    });
+                }
+
+                var ticket = await CreateTicketAsync(new OpenIdConnectRequest
+                {
+                    Scope = string.Join(" ", deviceCode.Scopes),
+                    ClientId = request.ClientId,
+                    ClientSecret = request.ClientSecret,
+                    GrantType = request.GrantType
+                }, user);
+
+                return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+            }
+            else if (request.IsPasswordGrantType())
+            {
+                // not implemented
+            }
+            else if (request.IsAuthorizationCodeGrantType())
             {
                 // Retrieve the claims principal stored in the authorization code.
                 var info = await HttpContext.Authentication.GetAuthenticateInfoAsync(

@@ -13,24 +13,27 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
             DynamoIdentityApplication, 
             DynamoIdentityAuthorization,
             DynamoIdentityToken,
-            DynamoIdentityScope>
+            DynamoIdentityScope,
+            DynamoIdentityDeviceCode>
             AddDynamoDBOpenIddictIdentity(this IServiceCollection services)
         {
             return new DynamoDBOpenIddictIdentityBuilder<
                 DynamoIdentityApplication, 
                 DynamoIdentityAuthorization, 
                 DynamoIdentityToken,
-                DynamoIdentityScope>(services);
+                DynamoIdentityScope,
+                DynamoIdentityDeviceCode>(services);
         }
 
-        public static DynamoDBOpenIddictIdentityBuilder<TApplication, TAuthorization, TToken, TScope> 
-            AddDynamoDBOpenIddictIdentity<TApplication, TAuthorization, TToken, TScope>(this IServiceCollection services)
+        public static DynamoDBOpenIddictIdentityBuilder<TApplication, TAuthorization, TToken, TScope, TDeviceCode> 
+            AddDynamoDBOpenIddictIdentity<TApplication, TAuthorization, TToken, TScope, TDeviceCode>(this IServiceCollection services)
             where TApplication : DynamoIdentityApplication
             where TAuthorization : DynamoIdentityAuthorization
             where TToken : DynamoIdentityToken
             where TScope : DynamoIdentityScope
+            where TDeviceCode : DynamoIdentityDeviceCode
         {
-            return new DynamoDBOpenIddictIdentityBuilder<TApplication, TAuthorization, TToken, TScope>(services);
+            return new DynamoDBOpenIddictIdentityBuilder<TApplication, TAuthorization, TToken, TScope, TDeviceCode>(services);
         }
     }
 }

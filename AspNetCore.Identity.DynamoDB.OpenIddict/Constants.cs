@@ -10,5 +10,6 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
         public const string DefaultAuthorizationTableName = "authorizations";
         public const string DefaultTokenTableName = "tokens";
         public const string DefaultScopeTableName = "scopes";
+        public const string DefaultDeviceCodeTableName = "deviceCodes";
     }
 }

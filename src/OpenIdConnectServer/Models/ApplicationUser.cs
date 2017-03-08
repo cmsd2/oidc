@@ -12,6 +12,14 @@ namespace OpenIdConnectServer.Models
     // Add profile data for application users by adding properties to the ApplicationUser class
     public class ApplicationUser : DynamoIdentityUser, IAuthenticatorUser, IUser
     {
+        public ApplicationUser()
+        {
+        }
+
+        public ApplicationUser(string username, string email) : base(username, email)
+        {
+        }
+
         public string AuthenticatorSecretEncrypted { get; set; }
 
         public byte AuthenticatorNumberOfDigits { get; set; }
