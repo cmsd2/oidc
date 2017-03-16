@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
 using OpenIdConnectServer.Models;
-using OpenIdConnectServer.Models.AccountViewModels;
+using OpenIdConnectServer.ViewModels.AccountViewModels;
 using OpenIdConnectServer.Services;
 using AspNetCore.Identity.DynamoDB.Models;
 

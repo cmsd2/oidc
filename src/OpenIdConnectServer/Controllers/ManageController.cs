@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using OpenIdConnectServer.Models;
-using OpenIdConnectServer.Models.ManageViewModels;
+using OpenIdConnectServer.ViewModels.ManageViewModels;
 using OpenIdConnectServer.Services;
 using System.Threading;
 using PaulMiami.AspNetCore.Identity.Authenticator;

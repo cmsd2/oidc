@@ -74,7 +74,7 @@ namespace OpenIdConnectClient
                 // inserted in the database at the server level.
                 ClientId = "YOUR_CLIENT_APP_ID",
                 ClientSecret = "YOUR_CLIENT_APP_SECRET",
-                PostLogoutRedirectUri = "http://localhost:5001",
+                PostLogoutRedirectUri = "http://localhost:5001/signout-callback-oidc",
 
                 RequireHttpsMetadata = false,
                 GetClaimsFromUserInfoEndpoint = true,

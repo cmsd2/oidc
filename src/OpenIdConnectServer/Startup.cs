@@ -1,38 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
+﻿using System.IO;
+using System.Threading;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
+using System.IdentityModel.Tokens.Jwt;
 using CryptoHelper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OpenIdConnectServer.Models;
 using OpenIdConnectServer.Services;
-using OpenIddict;
+using OpenIdConnectServer.Extensions;
 using PaulMiami.AspNetCore.Authentication.Authenticator;
+using PaulMiami.AspNetCore.Identity.Authenticator;
 using Directory = OpenIdConnectServer.Services.Directory;
 using AspNetCore.Identity.DynamoDB.OpenIddict;
 using AspNetCore.Identity.DynamoDB;
-using Microsoft.Extensions.Options;
+using AspNetCore.Identity.DynamoDB.OpenIddict.Stores;
+using AspNetCore.Identity.DynamoDB.OpenIddict.Models;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
-using AspNetCore.Identity.DynamoDB.OpenIddict.Models;
 using OpenIddict.Core;
-using System.Threading;
-using PaulMiami.AspNetCore.Identity.Authenticator;
+using OpenIddict.DeviceCodeFlow;
 using AspNet.Security.OpenIdConnect.Primitives;
-using System.IdentityModel.Tokens.Jwt;
-using AspNetCore.Identity.DynamoDB.OpenIddict.Stores;
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
 namespace OpenIdConnectServer
 {
@@ -111,6 +106,13 @@ namespace OpenIdConnectServer
                 .AddDeviceCodeStore()
                 .AddTokenStore();
 
+            services.AddSingleton(new DeviceCodeOptions());
+
+            services.AddSingleton<IDeviceCodeStore<DynamoIdentityDeviceCode>,
+                DynamoDeviceCodeStore<DynamoIdentityDeviceCode>>();
+
+            services.AddScoped<DeviceCodeManager<DynamoIdentityDeviceCode>>();
+
             var certPassword = Configuration.GetSection("SigningKey").GetValue<string>("Password", null);
             X509Certificate2 cert = new X509Certificate2(File.ReadAllBytes("cert.pfx"), certPassword);
 
@@ -171,26 +173,41 @@ namespace OpenIdConnectServer
 
             app.UseStaticFiles();
 
-            app.UseIdentity();
+            app.UseWhen(httpContext => httpContext.Request.Path.StartsWithSegments("/api"), branch =>
+            {
+                branch.UseOAuthValidation();
 
-            app.UseOAuthValidation();
+                JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+                JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
+
+                branch.UseJwtBearerAuthentication(new JwtBearerOptions
+                {
+                    Authority = "http://localhost:5000/",
+                    Audience = "resource_server", // see also AuthorizationController.CreateTicketAsync and ticket.SetResources
+                    RequireHttpsMetadata = false,
+                    TokenValidationParameters = new TokenValidationParameters
+                    {
+                        NameClaimType = OpenIdConnectConstants.Claims.Subject,
+                        RoleClaimType = OpenIdConnectConstants.Claims.Role
+                    }
+                });
+            });
+
+            app.UseWhen(httpContext => !httpContext.Request.Path.StartsWithSegments("/api"), branch =>
+            {
+                // Insert a new cookies middleware in the pipeline to store the user
+                // identity after he has been redirected from the identity provider.
+                branch.UseCookieAuthentication(new CookieAuthenticationOptions
+                {
+                    AutomaticAuthenticate = true,
+                    AutomaticChallenge = true,
+                    LoginPath = new PathString("/Account/Login")
+                });
+
+                branch.UseIdentity();
+            });
 
             app.UseOpenIddict();
-
-            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-            JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
-
-            app.UseJwtBearerAuthentication(new JwtBearerOptions
-            {
-                Authority = "http://localhost:5000/",
-                Audience = "resource_server", // see also AuthorizationController.CreateTicketAsync and ticket.SetResources
-                RequireHttpsMetadata = false,
-                TokenValidationParameters = new TokenValidationParameters
-                {
-                    NameClaimType = OpenIdConnectConstants.Claims.Subject,
-                    RoleClaimType = OpenIdConnectConstants.Claims.Role
-                }
-            });
 
             var options = app.ApplicationServices.GetService<IOptions<DynamoDbSettings>>();
             var client = env.IsDevelopment()
@@ -219,7 +236,8 @@ namespace OpenIdConnectServer
                 .GetService<IOpenIddictScopeStore<DynamoIdentityScope>>()
                 as DynamoScopeStore<DynamoIdentityScope>;
             var deviceCodeStore = app.ApplicationServices
-                .GetService<DynamoDeviceCodeStore<DynamoIdentityDeviceCode>>();
+                .GetService<IDeviceCodeStore<DynamoIdentityDeviceCode>>()
+                as DynamoDeviceCodeStore<DynamoIdentityDeviceCode>;
             var tokenStore = app.ApplicationServices
                 .GetService<IOpenIddictTokenStore<DynamoIdentityToken>>()
                 as DynamoTokenStore<DynamoIdentityToken>;
@@ -234,29 +252,39 @@ namespace OpenIdConnectServer
             deviceCodeStore.EnsureInitializedAsync(client, context, options.Value.DeviceCodesTableName).Wait();
             tokenStore.EnsureInitializedAsync(client, context, options.Value.TokensTableName).Wait();
 
-
-            var clientApp = applicationsStore.FindByClientIdAsync("YOUR_CLIENT_APP_ID", default(CancellationToken)).Result;
-
-            if (clientApp == null)
-            {
-                clientApp = new DynamoIdentityApplication
-                {
-                    ClientId = "YOUR_CLIENT_APP_ID",
-                    DisplayName = "My client application",
-                    RedirectUri = "http://localhost:5001" + "/signin-oidc",
-                    LogoutRedirectUri = "http://localhost:5001" + "/signout-callback-oidc",
-                    ClientSecret = Crypto.HashPassword("YOUR_CLIENT_APP_SECRET"),
-                    Type = OpenIddictConstants.ClientTypes.Confidential
-                };
-
-                applicationsStore.CreateAsync(clientApp, default(CancellationToken)).Wait();
-            }
+            CreateClientAsync(applicationsStore, "YOUR_CLIENT_APP_ID", "YOUR_CLIENT_APP_SECRET", "http://localhost:5001").Wait();
+            CreateClientAsync(applicationsStore, "console", "388D45FA-B36B-4988-BA59-B187D329C207", "http://localhost:5001").Wait();
+            CreateClientAsync(applicationsStore, "mvc", "901564A5-E7FE-42CB-B10D-61EF6A8F36", "http://localhost:53507").Wait();
 
             // Add external authentication middleware below. To configure them please see http://go.microsoft.com/fwlink/?LinkID=532715
 
             app.UseForwardedHeaders();
 
             app.UseMvcWithDefaultRoute();
+        }
+
+        private async Task CreateClientAsync(
+            DynamoApplicationStore<DynamoIdentityApplication,DynamoIdentityToken> applicationsStore, 
+            string clientId, string clientSecret, string url)
+        {
+            var clientApp = applicationsStore.FindByClientIdAsync(clientId, default(CancellationToken)).Result;
+
+            if (clientApp == null)
+            {
+                clientApp = new DynamoIdentityApplication
+                {
+                    ClientId = clientId,
+                    DisplayName = "My client application",
+                    RedirectUri = url + "/signin-oidc",
+                    LogoutRedirectUri = url + "/signout-callback-oidc",
+                    ClientSecret = Crypto.HashPassword(clientSecret),
+                    Type = clientSecret == null 
+                        ? OpenIddictConstants.ClientTypes.Public 
+                        : OpenIddictConstants.ClientTypes.Confidential
+                };
+
+                await applicationsStore.CreateAsync(clientApp, default(CancellationToken));
+            }
         }
     }
 }

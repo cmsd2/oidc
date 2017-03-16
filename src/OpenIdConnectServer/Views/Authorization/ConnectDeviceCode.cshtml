@@ -1,4 +1,4 @@
-﻿@model OpenIdConnectServer.Models.AuthorizationViewModels.AuthorizeDeviceCodeViewModel
+﻿@model AuthorizeDeviceCodeViewModel
 @{
     ViewData["Title"] = "Authorize Device";
 }
@@ -7,22 +7,22 @@
     <h1>Device Authorization</h1>
 
     <p class="lead text-left">Enter the device authorization code below to begin:</p>
-    
-    <form asp-action="ConnectDeviceCodeConfirm" method="post" class="form-horizontal">
 
-            @if (ViewData.ModelState.Any(x => x.Value.Errors.Any()))
+    <form asp-action="ConnectDeviceCodeConfirmation" method="post" class="form-horizontal">
+
+        @if (ViewData.ModelState.Any(x => x.Value.Errors.Any()))
             {
-                <div class="alert alert-danger">
-                    <a href="#" class="close" data-dismiss="alert">×</a>
-                    <h4>Validation Errors</h4>
-                    @Html.ValidationSummary()
-                </div>
-            }
+            <div class="alert alert-danger">
+                <a href="#" class="close" data-dismiss="alert">×</a>
+                <h4>Validation Errors</h4>
+                @Html.ValidationSummary()
+            </div>
+        }
 
-            @Html.AntiForgeryToken()
+        @Html.AntiForgeryToken()
 
-            <input asp-for="UserCode" class="form-control" />
+        <input asp-for="UserCode" class="form-control" />
 
-            <input class="btn btn-lg btn-success" name="submit.Accept" type="submit" value="Submit" />
-        </form>
+        <input class="btn btn-lg btn-success" name="submit.Accept" type="submit" value="Submit" />
+    </form>
 </div>
