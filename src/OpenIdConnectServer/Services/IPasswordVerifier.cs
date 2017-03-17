@@ -7,19 +7,18 @@ using OpenIdConnectServer.Models;
 
 namespace OpenIdConnectServer.Services
 {
-    public interface IPasswordVerifier
+    public interface IPasswordVerifier<TUser> where TUser : class, IUser
     {
-        Task<PasswordVerificationResult> VerifyPasswordAsync<TUser>(
-            IUserPasswordStore<TUser> store, 
-            TUser user, 
+        Task<PasswordVerificationResult> VerifyPasswordAsync(
+            UserManager<TUser> store,
+            TUser user,
             string password,
-            Func<Task<PasswordVerificationResult>> next) 
-            where TUser : class, IUser;
+            Func<Task<PasswordVerificationResult>> next);
     }
 
-    public class DefaultPasswordVerifier : IPasswordVerifier
+    public class DefaultPasswordVerifier<TUser> : IPasswordVerifier<TUser> where TUser : class, IUser
     {
-        Task<PasswordVerificationResult> IPasswordVerifier.VerifyPasswordAsync<TUser>(IUserPasswordStore<TUser> store, TUser user, string password, Func<Task<PasswordVerificationResult>> next)
+        public Task<PasswordVerificationResult> VerifyPasswordAsync(UserManager<TUser> store, TUser user, string password, Func<Task<PasswordVerificationResult>> next)
         {
             return next();
         }

@@ -13,14 +13,18 @@ namespace OpenIdConnectServer.Services
 {
     public class SimpleSignInManager : SignInManager<ApplicationUser>
     {
+        private readonly IPasswordVerifier<ApplicationUser> _passwordVerifier;
+
         public SimpleSignInManager(
             UserManager<ApplicationUser> userManager, 
             IHttpContextAccessor contextAccessor, 
             IUserClaimsPrincipalFactory<ApplicationUser> claimsFactory, 
             IOptions<IdentityOptions> optionsAccessor, 
-            ILogger<SignInManager<ApplicationUser>> logger) 
+            ILogger<SignInManager<ApplicationUser>> logger,
+            IPasswordVerifier<ApplicationUser> passwordVerifier) 
             : base(userManager, contextAccessor, claimsFactory, optionsAccessor, logger)
         {
+            _passwordVerifier = passwordVerifier;
         }
 
         public override Task<SignInResult> PasswordSignInAsync(ApplicationUser user, string password, bool isPersistent, bool lockoutOnFailure)
@@ -38,9 +42,14 @@ namespace OpenIdConnectServer.Services
                 UserName = userName
             };
 
-            var result = await this.UserManager.CheckPasswordAsync(applicationUser, password);
+            var result = await _passwordVerifier.VerifyPasswordAsync(UserManager, applicationUser, password, 
+                async () =>
+                    await this.UserManager.CheckPasswordAsync(applicationUser, password) 
+                    ? PasswordVerificationResult.Success
+                    : PasswordVerificationResult.Failed
+            );
 
-            if (result)
+            if (result == PasswordVerificationResult.Success)
             {
                 await this.FindOrCreateUser(applicationUser, password);
             }

@@ -87,7 +87,7 @@ namespace OpenIdConnectServer
                 .AddDefaultTokenProviders();*/
             
             // for ApplicationUserManager
-            services.AddSingleton<IPasswordVerifier, DefaultPasswordVerifier>();
+            services.AddSingleton<IPasswordVerifier<ApplicationUser>, OpenLdapPasswordVerifier<ApplicationUser>>();
             //services.AddSingleton<IUserClaimsPrincipalFactory<ApplicationUser>, UserClaimsPrincipalFactory<ApplicationUser>>();
 
             services.AddIdentity<ApplicationUser, DynamoIdentityRole>()
