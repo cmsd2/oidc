@@ -28,6 +28,7 @@ using OpenIddict.DeviceCodeFlow;
 using AspNet.Security.OpenIdConnect.Primitives;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
+using Amazon;
 
 namespace OpenIdConnectServer
 {
@@ -242,7 +243,8 @@ namespace OpenIdConnectServer
             var tokenStore = app.ApplicationServices
                 .GetService<IOpenIddictTokenStore<DynamoIdentityToken>>()
                 as DynamoTokenStore<DynamoIdentityToken>;
-                
+
+            AWSConfigsDynamoDB.Context.TableNamePrefix = options.Value.TableNamePrefix;
 
             userStore.EnsureInitializedAsync(client, context, options.Value.UsersTableName).Wait();
             roleStore.EnsureInitializedAsync(client, context, options.Value.RolesTableName).Wait();

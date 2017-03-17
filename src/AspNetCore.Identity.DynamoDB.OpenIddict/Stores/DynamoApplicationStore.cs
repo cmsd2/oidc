@@ -224,7 +224,7 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
 
             if (applicationTableName != Constants.DefaultApplicationTableName)
             {
-                AWSConfigsDynamoDB.Context.AddAlias(new TableAlias(applicationTableName, Constants.DefaultTokenTableName));
+                AWSConfigsDynamoDB.Context.AddAlias(new TableAlias(applicationTableName, Constants.DefaultApplicationTableName));
             }
 
             return EnsureInitializedImplAsync(client, applicationTableName);

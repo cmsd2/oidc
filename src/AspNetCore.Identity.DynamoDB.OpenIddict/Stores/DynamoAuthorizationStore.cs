@@ -132,7 +132,7 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
 
             if (authorizationTableName != Constants.DefaultAuthorizationTableName)
             {
-                AWSConfigsDynamoDB.Context.AddAlias(new TableAlias(authorizationTableName, Constants.DefaultTokenTableName));
+                AWSConfigsDynamoDB.Context.AddAlias(new TableAlias(authorizationTableName, Constants.DefaultAuthorizationTableName));
             }
 
             return EnsureInitializedImplAsync(client, authorizationTableName);
