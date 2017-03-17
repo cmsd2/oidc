@@ -16,5 +16,6 @@ namespace OpenIdConnectServer
         public string ScopesTableName { get; set; }
         public string TokensTableName { get; set; }
         public string DeviceCodesTableName { get; set; }
+        public string TableNamePrefix { get; set; }
     }
 }
