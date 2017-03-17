@@ -15,22 +15,22 @@ using PaulMiami.AspNetCore.Identity.Authenticator;
 
 namespace OpenIdConnectServer.Services
 {
-    public class OpenLdapUserManager<TUser> : IPasswordVerifier<TUser> where TUser : ApplicationUser
+    public class OpenLdapPasswordVerifier<TUser> : IPasswordVerifier<TUser> where TUser : ApplicationUser
     {
         private readonly IDirectory _directory;
         private readonly ILogger _logger;
 
-        public OpenLdapUserManager(
+        public OpenLdapPasswordVerifier(
             ILoggerFactory loggerFactory,
             IDirectory directory)
         {
             _directory = directory;
 
-            _logger = loggerFactory.CreateLogger<OpenLdapUserManager<TUser>>();
+            _logger = loggerFactory.CreateLogger<OpenLdapPasswordVerifier<TUser>>();
         }
 
         public async Task<PasswordVerificationResult> VerifyPasswordAsync(
-            UserManager<TUser> userManager, TUser user, string password,
+            IUserStore<TUser> userStore, TUser user, string password,
             Func<Task<PasswordVerificationResult>> next)
         {
             _logger.LogInformation("verifying password for user {UserName}", user.UserName);

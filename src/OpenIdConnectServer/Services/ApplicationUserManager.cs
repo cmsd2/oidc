@@ -18,7 +18,7 @@ namespace OpenIdConnectServer.Services
     public class ApplicationUserManager<TUser> : UserManager<TUser>, IAuthenticatorUserManager<TUser> 
         where TUser : class, IUser
     {
-        private readonly IPasswordVerifier _passwordVerifier;
+        private readonly IPasswordVerifier<TUser> _passwordVerifier;
         private readonly AuthenticatorUserManager<TUser> _authenticatorUserManager;
 
         public ApplicationUserManager(
@@ -33,7 +33,7 @@ namespace OpenIdConnectServer.Services
             ILogger<UserManager<TUser>> logger,
             IDataProtectionProvider dataProtectionProvider,
             IAuthenticatorService authenticatorService,
-            IPasswordVerifier passwordVerifier)
+            IPasswordVerifier<TUser> passwordVerifier)
 
             : base(store, optionsAccessor, passwordHasher, userValidators,
                   passwordValidators, keyNormalizer, errors, services, logger)

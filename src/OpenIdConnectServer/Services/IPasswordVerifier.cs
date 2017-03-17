@@ -10,7 +10,7 @@ namespace OpenIdConnectServer.Services
     public interface IPasswordVerifier<TUser> where TUser : class, IUser
     {
         Task<PasswordVerificationResult> VerifyPasswordAsync(
-            UserManager<TUser> store,
+            IUserStore<TUser> store,
             TUser user,
             string password,
             Func<Task<PasswordVerificationResult>> next);
@@ -18,7 +18,7 @@ namespace OpenIdConnectServer.Services
 
     public class DefaultPasswordVerifier<TUser> : IPasswordVerifier<TUser> where TUser : class, IUser
     {
-        public Task<PasswordVerificationResult> VerifyPasswordAsync(UserManager<TUser> store, TUser user, string password, Func<Task<PasswordVerificationResult>> next)
+        public Task<PasswordVerificationResult> VerifyPasswordAsync(IUserStore<TUser> store, TUser user, string password, Func<Task<PasswordVerificationResult>> next)
         {
             return next();
         }
