@@ -1,0 +1,31 @@
+﻿@model ApplicationsIndexViewModel
+@{
+    ViewData["Title"] = "Applications";
+}
+
+<table>
+    <thead>
+        <tr>
+            <th>Client Id</th>
+            <th>Name</th>
+            <th>Redirect Uri</th>
+            <th>Created On</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var application in Model.Applications)
+        {
+            <tr>
+                <td>@application.ClientId</td>
+                <td>@application.DisplayName</td>
+                <td>@application.RedirectUri</td>
+                <td>@application.CreatedOn</td>
+                <td><a href="@Url.Action("Edit", application)">Edit</a></td>
+                <td></td>
+            </tr>
+        }
+    </tbody>
+</table>
+

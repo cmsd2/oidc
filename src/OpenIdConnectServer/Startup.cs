@@ -112,6 +112,7 @@ namespace OpenIdConnectServer
                 DynamoDeviceCodeStore<DynamoIdentityDeviceCode>>();
 
             services.AddScoped<DeviceCodeManager<DynamoIdentityDeviceCode>>();
+            services.AddScoped<OpenIddictApplicationManager<DynamoIdentityApplication>, ApplicationApplicationManager>();
 
             var certPassword = Configuration.GetSection("SigningKey").GetValue<string>("Password", null);
             X509Certificate2 cert = new X509Certificate2(File.ReadAllBytes("cert.pfx"), certPassword);

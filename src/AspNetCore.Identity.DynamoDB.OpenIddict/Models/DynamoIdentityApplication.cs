@@ -17,7 +17,6 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
             Id = Guid.NewGuid().ToString();
             CreatedOn = DateTimeOffset.Now;
             ClientId = Guid.NewGuid().ToString();
-            ClientSecret = Guid.NewGuid().ToString();
         }
 
         public DynamoIdentityApplication(string name) : this()

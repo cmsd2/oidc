@@ -121,6 +121,17 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict
             return applications?.FirstOrDefault();
         }
 
+        public async Task<IEnumerable<TApplication>> FindAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var search = _context.FromScanAsync<TApplication>(new ScanOperationConfig
+            {
+            });
+
+            return await search.GetRemainingAsync(cancellationToken);
+        }
+
         public Task<string> GetClientIdAsync(TApplication application, CancellationToken cancellationToken)
         {
             return Task.FromResult(application.ClientId);
