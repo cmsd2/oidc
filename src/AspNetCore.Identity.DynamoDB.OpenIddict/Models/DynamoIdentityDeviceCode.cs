@@ -36,6 +36,9 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict.Models
         [DynamoDBProperty(typeof(DateTimeOffsetConverter))]
         public DateTimeOffset AuthorizedOn { get; set; }
 
+        [DynamoDBProperty(typeof(DateTimeOffsetConverter))]
+        public DateTimeOffset LastPolledAt { get; set; }
+
         public string Subject { get; set; }
 
         public List<string> Scopes { get; set; }

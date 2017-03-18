@@ -160,6 +160,18 @@ namespace AspNetCore.Identity.DynamoDB.OpenIddict.Stores
             await _context.DeleteAsync<TCode>(code, cancellationToken);
         }
 
+        public async Task UpdateLastPolledAtAsync(TCode code, CancellationToken cancellationToken)
+        {
+            if (code == null)
+            {
+                throw new ArgumentNullException(nameof(code));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await _context.SaveAsync(code, cancellationToken);
+        }
+
         public Task EnsureInitializedAsync(IAmazonDynamoDB client, IDynamoDBContext context,
             string codesTableName = Constants.DefaultDeviceCodeTableName)
         {

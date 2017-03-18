@@ -81,5 +81,10 @@ namespace OpenIddict.DeviceCodeFlow
         {
             return DeviceCodeStore.Revoke(code, CancellationToken);
         }
+
+        public Task UpdateLastPolledAt(TCode code)
+        {
+            return DeviceCodeStore.UpdateLastPolledAtAsync(code, CancellationToken);
+        }
     }
 }

@@ -42,5 +42,7 @@ namespace OpenIddict.DeviceCodeFlow
         Task Consume(TCode code, CancellationToken cancellationToken);
 
         Task Revoke(TCode code, CancellationToken cancellationToken);
+
+        Task UpdateLastPolledAtAsync(TCode code, CancellationToken cancellationToken);
     }
 }

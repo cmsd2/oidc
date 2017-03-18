@@ -248,6 +248,32 @@ namespace OpenIdConnectServer.Controllers
 
                 if (code.AuthorizedOn == default(DateTimeOffset))
                 {
+                    if (code.LastPolledAt == default(DateTimeOffset))
+                    {
+                        code.LastPolledAt = DateTimeOffset.Now;
+
+                        await _deviceCodeManager.UpdateLastPolledAt(code);
+                    }
+                    else
+                    {
+                        var interval = DateTimeOffset.Now - code.LastPolledAt;
+
+                        if (interval.TotalMilliseconds < _deviceCodeOptions.Interval * 950)
+                        {
+                            return BadRequest(new ErrorViewModel
+                            {
+                                Error = DeviceCodeFlowConstants.Errors.SlowDown,
+                                ErrorDescription = "Slow down"
+                            });
+                        }
+                        else
+                        {
+                            code.LastPolledAt = DateTimeOffset.Now;
+
+                            await _deviceCodeManager.UpdateLastPolledAt(code);
+                        }
+                    }
+
                     return BadRequest(new ErrorViewModel
                     {
                         Error = DeviceCodeFlowConstants.Errors.DeviceCodeAuthorizationPending,
