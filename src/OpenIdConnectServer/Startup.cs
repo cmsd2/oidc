@@ -60,6 +60,7 @@ namespace OpenIdConnectServer
             services.Configure<Settings>(Configuration);
             services.Configure<DynamoDbSettings>(Configuration.GetSection("DynamoDB"));
             services.Configure<DirectorySettings>(Configuration.GetSection("Ldap"));
+            services.Configure<DeviceCodeOptions>(Configuration.GetSection("DeviceCode"));
             services.Configure<IdentityOptions>(options =>
             {
                 options.ClaimsIdentity.UserNameClaimType = OpenIdConnectConstants.Claims.Name;
@@ -107,8 +108,8 @@ namespace OpenIdConnectServer
                 .AddScopeStore()
                 .AddDeviceCodeStore()
                 .AddTokenStore();
-
-            services.AddSingleton(new DeviceCodeOptions());
+            
+            services.AddSingleton(sp => sp.GetService<IOptions<DeviceCodeOptions>>().Value);
 
             services.AddSingleton<IDeviceCodeStore<DynamoIdentityDeviceCode>,
                 DynamoDeviceCodeStore<DynamoIdentityDeviceCode>>();
