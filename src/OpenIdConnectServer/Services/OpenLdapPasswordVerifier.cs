@@ -19,12 +19,15 @@ namespace OpenIdConnectServer.Services
     {
         private readonly IDirectory _directory;
         private readonly ILogger _logger;
+        private readonly DirectorySettings _directorySettings;
 
         public OpenLdapPasswordVerifier(
             ILoggerFactory loggerFactory,
+            IOptions<DirectorySettings> directorySettings,
             IDirectory directory)
         {
             _directory = directory;
+            _directorySettings = directorySettings.Value;
 
             _logger = loggerFactory.CreateLogger<OpenLdapPasswordVerifier<TUser>>();
         }
@@ -35,7 +38,7 @@ namespace OpenIdConnectServer.Services
         {
             _logger.LogInformation("verifying password for user {UserName}", user.UserName);
 
-            var suffix = "@mendeley.com";
+            var suffix = $"@{_directorySettings.LoginEmailDomain}";
 
             if (user.UserName.EndsWith(suffix))
             {

@@ -28,9 +28,16 @@ namespace OpenIdConnectServer
         public FromAddress From { get; set; }
     }
 
+    public class AuthenticatorSettings
+    {
+        public string Issuer { get; set; }
+    }
+
     public class Settings
     {
         public SmtpSettings Smtp { get; set; }
-        public DirectoryOptions Ldap { get; set; }
+        public DirectorySettings Ldap { get; set; }
+        public DynamoDbSettings DynamoDB { get; set; }
+        public AuthenticatorSettings Authenticator { get; set; }
     }
 }

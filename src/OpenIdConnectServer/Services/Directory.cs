@@ -10,30 +10,14 @@ using Microsoft.Extensions.Options;
 
 namespace OpenIdConnectServer.Services
 {
-    public enum DirectorySearchMode
-    {
-        NetBiosDomain,
-        DistinguishedName
-    }
-
-    public class DirectoryOptions
-    {
-        public string Host { get; set; }
-        public int Port { get; set; }
-        public string NetBiosDomain { get; set; }
-        public string DistinguishedNameSearchBase { get; set; }
-        public DirectorySearchMode DirectorySearchMode { get; set; } = DirectorySearchMode.DistinguishedName;
-        public bool SecureSocketLayer { get; set; } = false;
-    }
-
     public class Directory : IDirectory
     {
-        private readonly DirectoryOptions _options;
+        private readonly DirectorySettings _options;
         private readonly ILogger _logger;
 
-        public Directory(IOptions<Settings> options, ILoggerFactory loggerFactory)
+        public Directory(IOptions<DirectorySettings> options, ILoggerFactory loggerFactory)
         {
-            _options = options.Value.Ldap;
+            _options = options.Value;
             _logger = loggerFactory.CreateLogger<Directory>();
         }
 

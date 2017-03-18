@@ -59,6 +59,7 @@ namespace OpenIdConnectServer
             services.AddOptions();
             services.Configure<Settings>(Configuration);
             services.Configure<DynamoDbSettings>(Configuration.GetSection("DynamoDB"));
+            services.Configure<DirectorySettings>(Configuration.GetSection("Ldap"));
             services.Configure<IdentityOptions>(options =>
             {
                 options.ClaimsIdentity.UserNameClaimType = OpenIdConnectConstants.Claims.Name;
@@ -142,8 +143,13 @@ namespace OpenIdConnectServer
                 
                 .AddSigningCertificate(cert);
 
+            var authenticatorSection = Configuration.GetSection("Authenticator");
+            var authenticatorIssuer = authenticatorSection.GetValue<string>("Issuer", null);
             services.AddAuthenticator(c => {
-                c.Issuer = "oidc.corp.mendeley.com";
+                c.Issuer = authenticatorIssuer;
+                c.HashAlgorithm = HashAlgorithmType.SHA256;
+                c.PeriodInSeconds = 30;
+                c.NumberOfDigits = 6;
             });
 
             services.AddMvc();
