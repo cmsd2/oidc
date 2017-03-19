@@ -14,6 +14,8 @@ addons:
     bucket: cmsd2-artifacts
     target_paths: oidc/$TRAVIS_BUILD_NUMBER
     debug: true
+before_script:
+  - npm install -g bower
 install:
   - dotnet restore OpenIdConnect.sln
 script:
