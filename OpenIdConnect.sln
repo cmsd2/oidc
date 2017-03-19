@@ -13,8 +13,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenIdConnectClient", "src\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Novell.Directory.Ldap", "src\Novell.Directory.Ldap\Novell.Directory.Ldap.csproj", "{9314045D-3DAA-4A62-AABC-586DA7699E33}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentitySample.Mvc", "..\AspNetCore.Identity.DynamoDB\samples\IdentitySample.Mvc\IdentitySample.Mvc.csproj", "{5DE1FDD9-D653-4A4A-8922-BD29E589A422}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCore.Identity.DynamoDB.OpenIddict", "src\AspNetCore.Identity.DynamoDB.OpenIddict\AspNetCore.Identity.DynamoDB.OpenIddict.csproj", "{3F0A825A-AA6F-4AAB-B971-C4E7A3D0E620}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenIddict.DeviceCodeFlow", "src\OpenIddict.DeviceCodeFlow\OpenIddict.DeviceCodeFlow.csproj", "{19E97084-1EAE-4B2A-86FC-BB1C7F33FEBE}"
