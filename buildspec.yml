@@ -8,16 +8,16 @@ phases:
     commands:
   pre_build:
     commands:
-      - dotnet restore
+      - "dotnet restore"
   build:
     commands:
-      - dotnet build
+      - "dotnet build"
   post_build:
     commands:
-      - dotnet publish -o target/oidc
-      - cd target && zip -r oidc.zip oidc
+      - "dotnet publish -o target/oidc"
+      - "cd target && zip -r oidc.zip oidc"
 artifacts:
   files:
-    - oidc.zip
-  discard-paths: yes
-  base-directory: target
+    - "oidc.zip"
+  discard-paths: "yes"
+  base-directory: "target"
