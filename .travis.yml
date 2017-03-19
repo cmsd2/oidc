@@ -1,0 +1,27 @@
+sudo: false
+language: csharp
+mono: none
+dotnet: 1.0.1
+solution: OpenIdConnect.sln
+addons:
+  apt:
+    packages: 
+  artifacts:
+    s3_region: eu-west-1
+    paths:
+    - target/oidc.zip
+    bucket: cmsd2-artifacts
+    target_paths: oidc/$TRAVIS_BUILD_NUMBER
+    debug: true
+install:
+  - nuget restore OpenIdConnect.sln
+  - nuget install xunit.runners -Version 1.9.2 -OutputDirectory testrunner
+script:
+  - xbuild /p:Configuration=Release OpenIdConnect.sln
+  - dotnet package -o target/oidc
+  - cd target && zip -r oidc.zip oidc
+env:
+  global:
+  - ARTIFACTS_KEY: AKIAJQ7AB5KKVNZLX3TQ
+  - ARTIFACTS_BUCKET: cmsd2-artifacts
+  - secure: CDdMQZ0Mda/kKe/clTao2r6YEpyYp+waL+hiI5Wbx9/DylO8puTy/4wvX7KWCaWaGgDuGpfxWN1GBV8140lr1Vl6qvdCLNe9PtYyh1T9WPcnpOSzjy23aNq0Y3yPoQB+oiw6YnGy1NZTqnlXDsent8di1AymCBocWPEd7hmaCNjZLrQpJM2kDDlFqjRLxNcFT19+scojhNjw+xeEe1FsvaB4jXuMXSEuz/UPws88C6MYiTewrX55p92/QILzZx9DBBlXche7vvRoqCSjaJJp8SaXUmGhvSI9Z6aPwbQgPGWKZKznEF2ImgWHh+Spikn+FBtDYswLShRq5I/FMFQrC0JX7FO17LLrIAgrGtx4YSpOTaadY31pyoyE/lC7T7A8WtkivoxMKM6GAW/1vyRzllIQrTaOvrwaJiQCDO0VfcGyCdtwaiwv6faKGYD45GGEVqm4HpqP61G3QMRWvuVBKA13uRlU/aS5DuYMcxITZ0Fr6LyxCcVXq1AjVD+buRKTyY9ug+UFC1tS4NPo8NvqzD5NoGdtmPoXNXYIZIquwnuARzBpiqC55iPAcP/LYVcPDhHlNE87PxypS6S3xN5fS/SUcqahyuLWvpmtTYkDiYrlLp4EZNdl2idzKfFuO4Brxi3gimWDvK7nDuJbECatPa0RN39ivf5vA09fWhpNVdk=
