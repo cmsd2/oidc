@@ -10,7 +10,7 @@ addons:
   artifacts:
     s3_region: eu-west-1
     paths:
-    - src/OpenIdConnectServer/target/oidc.zip
+    - oidc.zip
     bucket: cmsd2-artifacts
     target_paths: oidc/$TRAVIS_BUILD_NUMBER
     debug: true
@@ -21,7 +21,7 @@ install:
 script:
   - dotnet build
   - cd $TRAVIS_BUILD_DIR/src/OpenIdConnectServer && dotnet publish -o target/oidc
-  - cd $TRAVIS_BUILD_DIR/src/OpenIdConnectServer/target && zip -r oidc.zip oidc
+  - cd $TRAVIS_BUILD_DIR/src/OpenIdConnectServer/target && zip -r $TRAVIS_BUILD_DIR/oidc.zip oidc
 env:
   global:
   - ARTIFACTS_KEY: AKIAJQ7AB5KKVNZLX3TQ

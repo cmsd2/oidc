@@ -1,5 +1,7 @@
 # OpenIdConnect Authorisation Service
 
+[![Build Status](https://travis-ci.org/cmsd2/oidc.svg?branch=master)](https://travis-ci.org/cmsd2/oidc)
+
 Uses OpenIddict, AspNetCore.Identity.DynamoDB and others to implement
 an Oidc authorisation service.
 
