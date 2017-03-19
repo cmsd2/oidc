@@ -1,4 +1,5 @@
 sudo: false
+dist: trusty
 language: csharp
 mono: none
 dotnet: 1.0.1
