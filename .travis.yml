@@ -20,8 +20,8 @@ install:
   - dotnet restore OpenIdConnect.sln
 script:
   - dotnet build
-  - cd src/OpenIdConnectServer && dotnet publish -o target/oidc
-  - cd src/OpenIdConnectServer/target && zip -r oidc.zip oidc
+  - cd $TRAVIS_BUILD_DIR/src/OpenIdConnectServer && dotnet publish -o target/oidc
+  - cd $TRAVIS_BUILD_DIR/src/OpenIdConnectServer/target && zip -r oidc.zip oidc
 env:
   global:
   - ARTIFACTS_KEY: AKIAJQ7AB5KKVNZLX3TQ
