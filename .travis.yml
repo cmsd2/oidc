@@ -15,10 +15,9 @@ addons:
     target_paths: oidc/$TRAVIS_BUILD_NUMBER
     debug: true
 install:
-  - nuget restore OpenIdConnect.sln
-  - nuget install xunit.runners -Version 1.9.2 -OutputDirectory testrunner
+  - dotnet restore OpenIdConnect.sln
 script:
-  - xbuild /p:Configuration=Release OpenIdConnect.sln
+  - dotnet build
   - dotnet package -o target/oidc
   - cd target && zip -r oidc.zip oidc
 env:
