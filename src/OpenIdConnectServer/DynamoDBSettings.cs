@@ -8,6 +8,7 @@ namespace OpenIdConnectServer
     public class DynamoDbSettings
     {
         public string ServiceUrl { get; set; }
+        public string Region { get; set; }
         public string UsersTableName { get; set; }
         public string RolesTableName { get; set; }
         public string RoleUsersTableName { get; set; }

@@ -1,0 +1,18 @@
+﻿
+@{
+    var status = (ViewData["Status"] ?? "success").ToString();
+    var colour = status == "error" ? "red accent-1"
+        : status == "warning" ? "amber accent-1"
+        : "green accent-1";
+    var icon = status == "error" ? "error"
+        : status == "warning" ? "warning"
+        : "check_circle";
+}
+
+@if ((string)(ViewData["StatusMessage"]) != "")
+{
+    <div class="flash @colour valign-wrapper">
+        <i class="valign material-icons md-36">@icon</i>
+        <div class="valign">@ViewData["StatusMessage"]</div>
+    </div>
+}

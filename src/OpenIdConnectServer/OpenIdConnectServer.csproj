@@ -33,6 +33,7 @@
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Validation" Version="1.0.0-beta1-final" />
     <PackageReference Include="AspNetCore.Identity.DynamoDB" Version="1.0.0-rc3-1" />
+    <PackageReference Include="AWSSDK.S3" Version="3.3.5.10" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="1.0.2" />
     <PackageReference Include="OpenIddict" Version="1.0.0-beta2-0584" />
     <PackageReference Include="MailKit" Version="1.10.2" />
@@ -78,6 +79,12 @@
 
   <ItemGroup>
     <None Include="Controllers\AuthorizationController.DeviceFlow.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Dockerfile">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

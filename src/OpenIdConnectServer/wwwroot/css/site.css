@@ -1,6 +1,7 @@
 ﻿body {
     padding-top: 50px;
     padding-bottom: 20px;
+    background-color: #fafafa;
 }
 
 /* Wrapping element */
@@ -8,6 +9,10 @@
 .body-content {
     padding-left: 15px;
     padding-right: 15px;
+}
+
+hr {
+    border-bottom: 0;
 }
 
 /* Set widths on the form inputs since otherwise they're 100% wide */
@@ -55,4 +60,103 @@ dl.dl-horizontal.wide dt {
 
 dl.dl-horizontal.wide dd {
     margin-left: 220px; 
+}
+
+input.input-validation-error {
+    border-bottom: 1px solid red;
+}
+
+input.input-validation-error:focus:not([readonly]) {
+    border-bottom: 1px solid red;
+    box-shadow: 0 1px 0 0 red;
+}
+
+.field-validation-error {
+    display: block;
+    margin-top: -20px;
+    color: red;
+    font-size: 75%;
+}
+
+.text-danger {
+    color: red;
+}
+
+.flash {
+    padding: 20px;
+    border-radius: 3px;
+    box-shadow: 0 0 3px lightgray;
+    margin-bottom: 20px;
+    font-size: larger;
+}
+
+.flash .material-icons {
+    margin-right: 10px;
+}
+
+.qrcode {
+    display: inline-block;
+}
+
+.qrcode table td {
+    padding: 0;
+    border-radius: 0;
+}
+
+.list-spaced-large li {
+    margin-bottom: 1em;
+}
+
+.material-icons.md-18 {
+    font-size: 18px;
+}
+
+.material-icons.md-24 {
+    font-size: 24px;
+}
+
+.material-icons.md-36 {
+    font-size: 36px;
+}
+
+.material-icons.md-48 {
+    font-size: 48px;
+}
+
+/* Rules for using icons as black on a light background. */
+.material-icons.md-dark {
+    color: rgba(0, 0, 0, 0.54);
+}
+
+.material-icons.md-dark.md-inactive {
+    color: rgba(0, 0, 0, 0.26);
+}
+
+/* Rules for using icons as white on a dark background. */
+.material-icons.md-light {
+    color: rgba(255, 255, 255, 1);
+}
+
+.material-icons.md-light.md-inactive {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.panel {
+    box-shadow: 0 0 2px darkgray;
+    border-radius: 2px;
+    background-color: white;
+}
+
+.panel .row {
+    padding: 20px 10px;
+    border-bottom: 1px solid lightgray;
+    margin: 0px;
+}
+
+.panel > a, .panel > a:visited, .panel > a:active {
+    color: inherit
+}
+
+.panel .row .col.value {
+    color: rgba(0, 0, 0, 0.55);
 }

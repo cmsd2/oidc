@@ -53,6 +53,9 @@ namespace OpenIdConnectServer.Controllers
                 : message == ManageMessageId.AddAuthenticator ? "Authenticator was added."
                 : message == ManageMessageId.RemoveAuthenticator ? "Authenticator was removed."
                 : "";
+            ViewData["Status"] =
+                message == ManageMessageId.Error ? "error"
+                : "success";
 
             var user = await GetCurrentUserAsync();
             if (user == null)

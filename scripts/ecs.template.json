@@ -1,0 +1,37 @@
+{   
+    "family": "$TASK_FAMILY",
+    "taskRoleArn": "arn:aws:iam::197315730647:role/oidc-role",
+    "containerDefinitions": [
+        {   
+            "name": "$TASK_FAMILY",
+            "image": "$DOCKER_REPO",
+            "cpu": 256,
+            "memory": 512, 
+            "portMappings": [
+                {
+                    "containerPort": 5000,
+                    "hostPort": 5000,
+                    "protocol": "tcp"
+                }
+            ],  
+            "essential": true,   
+            "command": [ 
+                "dotnet OpenIdConnectServer.dll"
+            ],
+            "environment": [ 
+            ],
+            "mountPoints": [
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "auth",
+                    "awslogs-region": "eu-west-1",
+                    "awslogs-stream-prefix": "oidc"
+                }
+            } 
+        }
+    ],
+    "volumes": [
+    ]   
+}

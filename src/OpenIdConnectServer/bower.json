@@ -6,6 +6,7 @@
     "jquery": "2.2.0",
     "jquery-validation": "1.14.0",
     "jquery-validation-unobtrusive": "3.2.6",
-    "qrjs": "v0.1.2"
+    "qrjs": "v0.1.2",
+    "materialize": "v0.98.0"
   }
 }

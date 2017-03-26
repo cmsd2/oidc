@@ -29,6 +29,10 @@ using AspNet.Security.OpenIdConnect.Primitives;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using Amazon;
+using Amazon.S3;
+using System.Collections.Generic;
+using System;
+using Amazon.Runtime;
 
 namespace OpenIdConnectServer
 {
@@ -44,7 +48,7 @@ namespace OpenIdConnectServer
             if (env.IsDevelopment())
             {
                 // For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
-                builder.AddUserSecrets();
+                builder.AddUserSecrets<Startup>();
             }
 
             builder.AddEnvironmentVariables();
@@ -117,10 +121,7 @@ namespace OpenIdConnectServer
             services.AddScoped<DeviceCodeManager<DynamoIdentityDeviceCode>>();
             services.AddScoped<OpenIddictApplicationManager<DynamoIdentityApplication>, ApplicationApplicationManager>();
 
-            var certPassword = Configuration.GetSection("SigningKey").GetValue<string>("Password", null);
-            X509Certificate2 cert = new X509Certificate2(File.ReadAllBytes("cert.pfx"), certPassword);
-
-            services.AddOpenIddict<DynamoIdentityApplication, DynamoIdentityAuthorization, DynamoIdentityScope, DynamoIdentityToken>()
+            var oiddictBuilder = services.AddOpenIddict<DynamoIdentityApplication, DynamoIdentityAuthorization, DynamoIdentityScope, DynamoIdentityToken>()
                 .AddMvcBinders()
                 .AddAuthorizationManager<ApplicationAuthorizationManager<DynamoIdentityAuthorization>>()
                 .UseJsonWebTokens()
@@ -140,15 +141,23 @@ namespace OpenIdConnectServer
                 // During development, you can disable the HTTPS requirement.
                 .DisableHttpsRequirement()
 
-                .UseJsonWebTokens()
-                
-                .AddSigningCertificate(cert);
+                .UseJsonWebTokens();
+
+            AWSConfigsS3.UseSignatureVersion4 = true;
+            AWSConfigs.LoggingConfig.LogTo = LoggingOptions.Console;
+            AWSConfigs.LoggingConfig.LogResponses = ResponseLoggingOption.OnError;
+
+            var certs = LoadCerts().Result;
+            foreach (var cert in certs)
+            {
+                oiddictBuilder.AddSigningCertificate(cert);
+            }
 
             var authenticatorSection = Configuration.GetSection("Authenticator");
             var authenticatorIssuer = authenticatorSection.GetValue<string>("Issuer", null);
             services.AddAuthenticator(c => {
                 c.Issuer = authenticatorIssuer;
-                c.HashAlgorithm = HashAlgorithmType.SHA256;
+                c.HashAlgorithm = HashAlgorithmType.SHA1;
                 c.PeriodInSeconds = 30;
                 c.NumberOfDigits = 6;
             });
@@ -219,12 +228,7 @@ namespace OpenIdConnectServer
             app.UseOpenIddict();
 
             var options = app.ApplicationServices.GetService<IOptions<DynamoDbSettings>>();
-            var client = env.IsDevelopment()
-                ? new AmazonDynamoDBClient(new AmazonDynamoDBConfig
-                {
-                    ServiceURL = options.Value.ServiceUrl
-                })
-                : new AmazonDynamoDBClient();
+            var client = NewDynamoDBClient(env, options.Value);
             var context = new DynamoDBContext(client);
 
             var userStore = app.ApplicationServices
@@ -271,6 +275,80 @@ namespace OpenIdConnectServer
             app.UseForwardedHeaders();
 
             app.UseMvcWithDefaultRoute();
+        }
+
+        private AmazonDynamoDBClient NewDynamoDBClient(IHostingEnvironment env, DynamoDbSettings options)
+        {
+            if (env.IsDevelopment())
+            {
+                return new AmazonDynamoDBClient(new AmazonDynamoDBConfig
+                {
+                    ServiceURL = options.ServiceUrl
+                });
+            }
+
+            var accessKeyId = Configuration.GetValue<string>("AWS_ACCESS_KEY_ID", null);
+            var secretAccessKey = Configuration.GetValue<string>("AWS_SECRET_ACCESS_KEY", null);
+
+            var region = RegionEndpoint.GetBySystemName(options.Region);
+
+            if (accessKeyId != null)
+            {
+                return new AmazonDynamoDBClient(new BasicAWSCredentials(accessKeyId, secretAccessKey), region);
+            }
+
+            return new AmazonDynamoDBClient(region);
+        }
+
+        private AmazonS3Client NewS3Client()
+        {
+            var accessKeyId = Configuration.GetValue<string>("AWS_ACCESS_KEY_ID", null);
+            var secretAccessKey = Configuration.GetValue<string>("AWS_SECRET_ACCESS_KEY", null);
+            var regionName = Configuration.GetValue<string>("S3Region", "eu-west-1");
+
+            var region = RegionEndpoint.GetBySystemName(regionName);
+
+            if (accessKeyId != null)
+            {
+                return new AmazonS3Client(new BasicAWSCredentials(accessKeyId, secretAccessKey), region);
+            }
+            else
+            {
+                return new AmazonS3Client(region);
+            }
+        }
+
+        private async Task<List<X509Certificate2>> LoadCerts()
+        {
+            var urlsSetting = Configuration.GetSection("SigningKey").GetValue<string>("CertUrls");
+            var certUrls = urlsSetting.Split(',');
+
+            var s3 = NewS3Client();
+
+            var results = new List<X509Certificate2>();
+
+            foreach (var u in certUrls)
+            {
+                var uri = new Uri(u);
+
+                if (uri.Scheme == "s3")
+                {
+                    using (var result = await s3.GetObjectAsync(uri.Host, uri.AbsolutePath.Substring(1)))
+                    using (var reader = new BinaryReader(result.ResponseStream))
+                    {
+                        var data = reader.ReadToEnd();
+
+                        results.Add(new X509Certificate2(data));
+                    }
+                }
+                else if (uri.Scheme == "file")
+                {
+                    var data = File.ReadAllBytes(uri.OriginalString.Substring(7));
+                    results.Add(new X509Certificate2(data));
+                }
+            }
+
+            return results;
         }
 
         private async Task CreateClientAsync(

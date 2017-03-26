@@ -3,42 +3,70 @@
     ViewData["Title"] = "Manage your account";
 }
 
-<h2>@ViewData["Title"].</h2>
-<p class="text-success">@ViewData["StatusMessage"]</p>
 
-<div class="panel">
-    <h4>Change your account settings</h4>
-    <hr />
-    <dl class="dl-horizontal wide">
-        <dt>Email</dt>
-        <dd>
-            @(Model.Email ?? "None")
-            <a asp-controller="Manage" asp-action="ChangeEmail" class="btn-bracketed">Change</a>
-        </dd>
-        <dt>Password:</dt>
-        <dd>
-            @if (Model.HasPassword)
-            {
-                <a asp-controller="Manage" asp-action="ChangePassword" class="btn-bracketed">Change</a>
-            }
-            else
-            {
-                <a asp-controller="Manage" asp-action="SetPassword" class="btn-bracketed">Create</a>
-            }
-        </dd>
-        <dt>External Logins:</dt>
-        <dd>
+<div class="section">
+    <h2>@ViewData["Title"].</h2>
+    <div class="row">
+        <div class="col s12 m8">
 
-            @Model.Logins.Count <a asp-controller="Manage" asp-action="ManageLogins" class="btn-bracketed">Manage</a>
-        </dd>
-        <dt>Phone Number:</dt>
-        <dd>
-            <p>
-                Phone Numbers can used as a second factor of verification in two-factor authentication.
-                See <a href="http://go.microsoft.com/fwlink/?LinkID=532713">this article</a>
-                for details on setting up this ASP.NET application to support two-factor authentication using SMS.
-            </p>
-            @*@(Model.PhoneNumber ?? "None")
+            @{ Html.RenderPartial("_StatusMessage"); }            
+
+            <div class="section">
+                <h5>Your account settings</h5>
+            </div>
+
+            <div class="panel">
+                
+                <a href="@Url.Action("ChangeEmail", "Manage")">
+                    <div class="row">
+
+                        <div class="col s12 m4">Email:</div>
+                        <div class="col s12 m8 value">
+                            @(Model.Email ?? "None")
+                            <i class="right material-icons">keyboard_arrow_right</i>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="@Url.Action(Model.HasPassword ? "ChangePassword" : "SetPassword", "Manage")">
+                    <div class="row">
+
+                        <div class="col s12 m4">Password:</div>
+                        <div class="col s12 m8 value">
+                            @if (Model.HasPassword)
+                            {
+                                <span>Change password</span>
+                            }
+                            else
+                            {
+                                <span>Set password</span>
+                            }
+                            <i class="right material-icons">keyboard_arrow_right</i>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="@Url.Action("ManageLogins", "Manage")">
+                    <div class="row">
+                        <div class="col s12 m4">External Logins:</div>
+                        <div class="col s12 m8 value">
+                            @Model.Logins.Count
+                            <i class="right material-icons">keyboard_arrow_right</i>
+                        </div>
+                    </div>
+                </a>
+
+                <!--
+                    
+                <div class="row">
+                    <div class="col s12 m4">Phone Number:</div>
+                    <div class="col s12 m8 value">
+                        <div>
+                            Phone Numbers can used as a second factor of verification in two-factor authentication.
+                            See <a href="http://go.microsoft.com/fwlink/?LinkID=532713">this article</a>
+                            for details on setting up this ASP.NET application to support two-factor authentication using SMS.
+                        </div>
+                        @*@(Model.PhoneNumber ?? "None")
                 @if (Model.PhoneNumber != null)
                 {
                     <br />
@@ -51,34 +79,44 @@
                 {
                     <a asp-controller="Manage" asp-action="AddPhoneNumber" class="btn-bracketed">Add</a>
                 }*@
-        </dd>
+                    </div>
+                </div>
+                    -->
+                <a href="@Url.Action(Model.AuthenticatorEnabled ? "RemoveAuthenticator" : "AddAuthenticator")">
+                    <div class="row">
+                        <div class="col s12 m4">Authenticator:</div>
+                        <div class="col s12 m8 value">
+                            @if (Model.AuthenticatorEnabled)
+                            {
+                                <span>Remove authenticator</span>
+                            }
+                            else
+                            {
+                                <span>Add authenticator</span>
+                            }
+                            <i class="right material-icons">keyboard_arrow_right</i>
+                        </div>
+                    </div>
+                </a>
 
-        <dt>Authenticator:</dt>
-        <dd>
-            @if (Model.AuthenticatorEnabled)
-            {
-                <a asp-controller="Manage" asp-action="RemoveAuthenticator" class="btn-bracketed">Remove</a>
-            }
-            else
-            {
-                <a asp-controller="Manage" asp-action="AddAuthenticator" class="btn-bracketed">Add</a>
-            }
-        </dd>
-
-        <dt>Two-Factor Authentication:</dt>
-        <dd>
-            @if (Model.TwoFactor)
-                {
-                    <form asp-controller="Manage" asp-action="DisableTwoFactorAuthentication" method="post" class="form-horizontal">
-                        Enabled <button type="submit" class="btn-link btn-bracketed">Disable</button>
-                    </form>
-                }
-                else
-                {
-                    <form asp-controller="Manage" asp-action="EnableTwoFactorAuthentication" method="post" class="form-horizontal">
-                        <button type="submit" class="btn-link btn-bracketed">Enable</button> Disabled
-                    </form>
-                }
-        </dd>
-    </dl>
+                <div class="row">
+                    <div class="col s12 m4">Two-Factor Authentication:</div>
+                    <div class="col s12 m8 value">
+                        @if (Model.TwoFactor)
+                        {
+                            <form asp-controller="Manage" asp-action="DisableTwoFactorAuthentication" method="post" class="form-horizontal">
+                                Enabled <button type="submit" class="btn btn-link">Disable</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-controller="Manage" asp-action="EnableTwoFactorAuthentication" method="post" class="form-horizontal">
+                                <button type="submit" class="btn btn-link">Enable</button> Disabled
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

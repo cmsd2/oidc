@@ -3,43 +3,58 @@
     ViewData["Title"] = "Add Authenticator";
 }
 
-<h2>@ViewData["Title"].</h2>
-<form asp-controller="Manage" asp-action="AddAuthenticator" method="post" class="form-horizontal">
-    <h4>Add authenticator.</h4>
-    <hr />
-    <ol>
-        <li>Go to your phone's App store.</li>
-        <li>Search for "Authenticator App".</li>
-        <li>Download an app.(E.g. AWS Virtual MFA, Google Authenticator, Authy, Microsoft Azure Authenticator)</li>
-        <li>Use the app to scan the qrcode below.</li>
-    </ol>
-    <div id="qrcode"></div>
-    <div asp-validation-summary="All" class="text-danger"></div>
-    <div class="form-group">
-        <label asp-for="Code" class="col-md-2 control-label"></label>
-        <div class="col-md-10">
-            <input asp-for="Code" class="form-control" />
-            <span asp-validation-for="Code" class="text-danger"></span>
+<div class="section">
+    <h2>@ViewData["Title"].</h2>
+    <div class="row">
+        <div class="col s12 m8">
+            <form asp-controller="Manage" asp-action="AddAuthenticator" method="post" class="form-horizontal">
+                <!-- <h5>Add authenticator.</h5> -->
+                <hr />
+                <div class="row">
+                    <div class="col s12 m6 push-m6">
+                        <ol style="font-size: larger;" class="list-spaced-large">
+                            <li>Go to your phone's App store.</li>
+                            <li>Search for "Authenticator App".</li>
+                            <li>Download an app.(E.g. AWS Virtual MFA, Google Authenticator, Authy, Microsoft Azure Authenticator)</li>
+                            <li>Use the app to scan the qrcode below.</li>
+                        </ol>
+                    </div>
+
+                    <div class="col s12 m6 pull-m6">
+                        <div id="qrcode"></div>
+                    </div>
+                </div>
+                
+                
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <p>
+                    <div class="input-field">
+                        <label asp-for="Code"></label>
+                        <input asp-for="Code" />
+                        <span asp-validation-for="Code" class="text-danger"></span>
+                    </div>
+                </p>
+                <input type="hidden" asp-for="HashAlgorithm" />
+                <input type="hidden" asp-for="NumberOfDigits" />
+                <input type="hidden" asp-for="PeriodInSeconds" />
+                <input type="hidden" asp-for="Secret" />
+                <input type="hidden" asp-for="Uri" />
+                <p>
+                    <div class="input-field">
+                        <button type="submit" class="btn btn-default">Add authenticator</button>
+                    </div>
+                </p>
+            </form>
         </div>
     </div>
-    <input type="hidden" asp-for="HashAlgorithm" />
-    <input type="hidden" asp-for="NumberOfDigits" />
-    <input type="hidden" asp-for="PeriodInSeconds" />
-    <input type="hidden" asp-for="Secret" />
-    <input type="hidden" asp-for="Uri" />
-    <div class="form-group">
-        <div class="col-md-offset-2 col-md-10">
-            <button type="submit" class="btn btn-default">Add authenticator</button>
-        </div>
-    </div>
-</form>
+</div>
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
-    
+
     <script src="~/lib/qrjs/qr.js"></script>
     <script type="text/javascript">
-        var options = { ecclevel: 'H' };
+        var options = { ecclevel: 'M' };
         var el = document.getElementById("qrcode");;
         var table = QRCode.generateHTML("@Html.Raw(Model.Uri)", options);
         $('#qrcode').empty().append(table);

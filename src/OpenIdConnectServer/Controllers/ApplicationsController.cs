@@ -40,7 +40,7 @@ namespace OpenIdConnectServer.Controllers
             });
         }
 
-        public async Task<IActionResult> New(ApplicationViewModel model)
+        public IActionResult New(ApplicationViewModel model)
         {
             return View(model);
         }
