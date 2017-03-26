@@ -10,11 +10,11 @@ DIR=$(readlink -f "$(dirname $0)")
 #TASK_FAMILY=...
 #SERVICE_NAME=...
 #IMAGE_NAME=...
-IMAGE_TAG=$TRAVIS_BUILD_NUMBER
+#IMAGE_TAG=...
 
 export DOCKER_REPO="$DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
 
-LOGIN_CMD=$(aws ecr get-login)
+LOGIN_CMD=$(aws ecr --region $AWS_DEFAULT_REGION get-login)
 
 eval $LOGIN_CMD
 
