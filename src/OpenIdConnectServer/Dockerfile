@@ -1,9 +1,9 @@
 ﻿FROM microsoft/dotnet:1.0.4-runtime
 
-WORKDIR /app
+ADD . /app
 
-ADD . .
+WORKDIR /app/wwwroot
 
 EXPOSE 5000
 
-ENTRYPOINT dotnet OpenIdConnectServer.dll
+ENTRYPOINT dotnet ../OpenIdConnectServer.dll

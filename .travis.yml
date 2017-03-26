@@ -9,13 +9,6 @@ solution: OpenIdConnect.sln
 addons:
   apt:
     packages: 
-  artifacts:
-    s3_region: eu-west-1
-    paths:
-    - oidc.zip
-    bucket: cmsd2-artifacts
-    target_paths: oidc/$TRAVIS_BUILD_NUMBER
-    debug: true
 before_install:
   - pip install --user awscli
   - export PATH=$PATH:$HOME/.local/bin
