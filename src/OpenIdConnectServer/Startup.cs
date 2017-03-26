@@ -333,22 +333,24 @@ namespace OpenIdConnectServer
 
             foreach (var u in certUrls)
             {
-                var uri = new Uri(u);
-
-                if (uri.Scheme == "s3")
+                if (u.StartsWith("file://"))
                 {
-                    using (var result = await s3.GetObjectAsync(uri.Host, uri.AbsolutePath.Substring(1)))
-                    using (var reader = new BinaryReader(result.ResponseStream))
-                    {
-                        var data = reader.ReadToEnd();
-
-                        results.Add(new X509Certificate2(data));
-                    }
-                }
-                else if (uri.Scheme == "file")
-                {
-                    var data = File.ReadAllBytes(uri.OriginalString.Substring(7));
+                    var data = File.ReadAllBytes(u.Substring(7));
                     results.Add(new X509Certificate2(data));
+                } else
+                {
+                    var uri = new Uri(u);
+
+                    if (uri.Scheme == "s3")
+                    {
+                        using (var result = await s3.GetObjectAsync(uri.Host, uri.AbsolutePath.Substring(1)))
+                        using (var reader = new BinaryReader(result.ResponseStream))
+                        {
+                            var data = reader.ReadToEnd();
+
+                            results.Add(new X509Certificate2(data));
+                        }
+                    }
                 }
             }
 

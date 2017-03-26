@@ -2,8 +2,8 @@
 
 ADD . /app
 
-WORKDIR /app/wwwroot
+WORKDIR /app
 
 EXPOSE 5000
 
-ENTRYPOINT dotnet ../OpenIdConnectServer.dll
+ENTRYPOINT dotnet OpenIdConnectServer.dll
