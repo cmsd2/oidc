@@ -283,7 +283,7 @@ namespace OpenIdConnectServer
 
         private AmazonDynamoDBClient NewDynamoDBClient(IHostingEnvironment env, DynamoDbSettings options)
         {
-            if (!env.IsDevelopment())
+            if (env.IsDevelopment())
             {
                 return new AmazonDynamoDBClient(new AmazonDynamoDBConfig
                 {
