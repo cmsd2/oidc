@@ -6,7 +6,7 @@
             "name": "$TASK_FAMILY",
             "image": "$DOCKER_REPO",
             "cpu": 256,
-            "memory": 512, 
+            "memory": 384, 
             "portMappings": [
                 {
                     "containerPort": 5000,
