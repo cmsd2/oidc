@@ -18,7 +18,9 @@
             "command": [ 
                 "dotnet OpenIdConnectServer.dll"
             ],
-            "environment": [ 
+            "environment": [
+                { "name": "SigningKey:CertUrls", "value": "s3://cmsd2-secure/oidc/certs/1.pfx" },
+                { "name": "ASPNETCORE_URLS", "value": "http://0.0.0.0:5000" }
             ],
             "mountPoints": [
             ],

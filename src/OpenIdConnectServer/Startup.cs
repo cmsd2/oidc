@@ -229,7 +229,11 @@ namespace OpenIdConnectServer
 
             var options = app.ApplicationServices.GetService<IOptions<DynamoDbSettings>>();
             var client = NewDynamoDBClient(env, options.Value);
-            var context = new DynamoDBContext(client);
+            var contextConfig = new DynamoDBContextConfig
+            {
+                TableNamePrefix = options.Value.TableNamePrefix
+            };
+            var context = new DynamoDBContext(client, contextConfig);
 
             var userStore = app.ApplicationServices
                 .GetService<IUserStore<ApplicationUser>>()
@@ -254,17 +258,17 @@ namespace OpenIdConnectServer
             var tokenStore = app.ApplicationServices
                 .GetService<IOpenIddictTokenStore<DynamoIdentityToken>>()
                 as DynamoTokenStore<DynamoIdentityToken>;
+            
+            var prefix = options.Value.TableNamePrefix;
 
-            AWSConfigsDynamoDB.Context.TableNamePrefix = options.Value.TableNamePrefix;
-
-            userStore.EnsureInitializedAsync(client, context, options.Value.UsersTableName).Wait();
-            roleStore.EnsureInitializedAsync(client, context, options.Value.RolesTableName).Wait();
-            roleUsersStore.EnsureInitializedAsync(client, context, options.Value.RoleUsersTableName).Wait();
-            applicationsStore.EnsureInitializedAsync(client, context, options.Value.ApplicationsTableName).Wait();
-            authorizationStore.EnsureInitializedAsync(client, context, options.Value.AuthorizationsTableName).Wait();
-            scopeStore.EnsureInitializedAsync(client, context, options.Value.ScopesTableName).Wait();
-            deviceCodeStore.EnsureInitializedAsync(client, context, options.Value.DeviceCodesTableName).Wait();
-            tokenStore.EnsureInitializedAsync(client, context, options.Value.TokensTableName).Wait();
+            userStore.EnsureInitializedAsync(client, context, $"{prefix}{options.Value.UsersTableName}").Wait();
+            roleStore.EnsureInitializedAsync(client, context, $"{prefix}{options.Value.RolesTableName}").Wait();
+            roleUsersStore.EnsureInitializedAsync(client, context, $"{prefix}{options.Value.RoleUsersTableName}").Wait();
+            applicationsStore.EnsureInitializedAsync(client, context, $"{prefix}{options.Value.ApplicationsTableName}").Wait();
+            authorizationStore.EnsureInitializedAsync(client, context, $"{prefix}{options.Value.AuthorizationsTableName}").Wait();
+            scopeStore.EnsureInitializedAsync(client, context, $"{prefix}{options.Value.ScopesTableName}").Wait();
+            deviceCodeStore.EnsureInitializedAsync(client, context, $"{prefix}{options.Value.DeviceCodesTableName}").Wait();
+            tokenStore.EnsureInitializedAsync(client, context, $"{prefix}{options.Value.TokensTableName}").Wait();
 
             CreateClientAsync(applicationsStore, "YOUR_CLIENT_APP_ID", "YOUR_CLIENT_APP_SECRET", "http://localhost:5001").Wait();
             CreateClientAsync(applicationsStore, "console", "388D45FA-B36B-4988-BA59-B187D329C207", "http://localhost:5001").Wait();
