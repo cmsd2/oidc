@@ -65,6 +65,7 @@ namespace OpenIdConnectServer
             services.Configure<DynamoDbSettings>(Configuration.GetSection("DynamoDB"));
             services.Configure<DirectorySettings>(Configuration.GetSection("Ldap"));
             services.Configure<DeviceCodeOptions>(Configuration.GetSection("DeviceCode"));
+            services.Configure<ReCaptchaSettings>(Configuration.GetSection("ReCaptcha"));
             services.Configure<IdentityOptions>(options =>
             {
                 options.ClaimsIdentity.UserNameClaimType = OpenIdConnectConstants.Claims.Name;
@@ -72,6 +73,8 @@ namespace OpenIdConnectServer
                 options.ClaimsIdentity.RoleClaimType = OpenIdConnectConstants.Claims.Role;
             });
             services.AddSingleton<IConfiguration>(Configuration);
+
+            services.AddScoped<ReCaptcha>();
 
             // Add framework services.
             //            var connection = @"Server=(localdb)\mssqllocaldb;Database=OpenIdConnectServer;Trusted_Connection=True;";
@@ -161,6 +164,9 @@ namespace OpenIdConnectServer
                 c.PeriodInSeconds = 30;
                 c.NumberOfDigits = 6;
             });
+
+            // register custom model bindings
+            services.AddTypeDescriptors();
 
             services.AddMvc();
 
@@ -283,25 +289,28 @@ namespace OpenIdConnectServer
 
         private AmazonDynamoDBClient NewDynamoDBClient(IHostingEnvironment env, DynamoDbSettings options)
         {
+            var config = new AmazonDynamoDBConfig();
+
             if (env.IsDevelopment())
             {
-                return new AmazonDynamoDBClient(new AmazonDynamoDBConfig
-                {
-                    ServiceURL = options.ServiceUrl
-                });
+                config.ServiceURL = options.ServiceUrl;
+            }
+            else
+            {
+                var region = RegionEndpoint.GetBySystemName(options.Region);
+
+                config.RegionEndpoint = region;
             }
 
             var accessKeyId = Configuration.GetValue<string>("AWS_ACCESS_KEY_ID", null);
             var secretAccessKey = Configuration.GetValue<string>("AWS_SECRET_ACCESS_KEY", null);
 
-            var region = RegionEndpoint.GetBySystemName(options.Region);
-
             if (accessKeyId != null)
             {
-                return new AmazonDynamoDBClient(new BasicAWSCredentials(accessKeyId, secretAccessKey), region);
+                return new AmazonDynamoDBClient(new BasicAWSCredentials(accessKeyId, secretAccessKey), config);
             }
 
-            return new AmazonDynamoDBClient(region);
+            return new AmazonDynamoDBClient(config);
         }
 
         private AmazonS3Client NewS3Client()

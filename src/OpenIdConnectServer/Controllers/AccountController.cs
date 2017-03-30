@@ -12,6 +12,11 @@ using OpenIdConnectServer.Models;
 using OpenIdConnectServer.ViewModels.AccountViewModels;
 using OpenIdConnectServer.Services;
 using AspNetCore.Identity.DynamoDB.Models;
+using Microsoft.Extensions.Primitives;
+using System.Net.Http;
+using Newtonsoft.Json;
+using Microsoft.Extensions.Options;
+using System.Text;
 
 namespace OpenIdConnectServer.Controllers
 {
@@ -23,13 +28,15 @@ namespace OpenIdConnectServer.Controllers
         private readonly IEmailSender _emailSender;
         private readonly ISmsSender _smsSender;
         private readonly ILogger _logger;
+        private readonly ReCaptcha _reCaptcha;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IEmailSender emailSender,
             ISmsSender smsSender,
-            ILoggerFactory loggerFactory
+            ILoggerFactory loggerFactory,
+            ReCaptcha reCaptcha
             )
         {
             _userManager = userManager;
@@ -37,6 +44,7 @@ namespace OpenIdConnectServer.Controllers
             _emailSender = emailSender;
             _smsSender = smsSender;
             _logger = loggerFactory.CreateLogger<AccountController>();
+            _reCaptcha = reCaptcha;
         }
 
         //
@@ -93,6 +101,7 @@ namespace OpenIdConnectServer.Controllers
         [AllowAnonymous]
         public IActionResult Register(string returnUrl = null)
         {
+            ViewData["ReCaptchaKey"] = _reCaptcha.Key;
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
@@ -104,9 +113,25 @@ namespace OpenIdConnectServer.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model, string returnUrl = null)
         {
+            ViewData["ReCaptchaKey"] = _reCaptcha.Key;
             ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
             {
+                Request.Form.TryGetValue("g-recaptcha-response", out var captcha);
+                var captchaResult = await _reCaptcha.Verify(Request, captcha);
+                if (!captchaResult.Success)
+                {
+                    var code = captchaResult.ErrorCodes.FirstOrDefault() ?? "";
+
+                    var message =
+                        code == "missing-input-response" ? "Please verify you are not a robot."
+                        : "Something went wrong with the ReCaptcha.";
+
+                    ModelState.AddModelError("ReCaptcha", message);
+
+                    return View(model);
+                }
+
                 var user = new ApplicationUser(model.Email, model.Email);
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
@@ -252,6 +277,7 @@ namespace OpenIdConnectServer.Controllers
         [AllowAnonymous]
         public IActionResult ForgotPassword()
         {
+            ViewData["ReCaptchaKey"] = _reCaptcha.Key;
             return View();
         }
 
@@ -262,8 +288,24 @@ namespace OpenIdConnectServer.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
+            ViewData["ReCaptchaKey"] = _reCaptcha.Key;
             if (ModelState.IsValid)
             {
+                Request.Form.TryGetValue("g-recaptcha-response", out var captcha);
+                var captchaResult = await _reCaptcha.Verify(Request, captcha);
+                if (!captchaResult.Success)
+                {
+                    var code = captchaResult.ErrorCodes.FirstOrDefault() ?? "";
+
+                    var message =
+                        code == "missing-input-response" ? "Please verify you are not a robot."
+                        : "Something went wrong with the ReCaptcha.";
+
+                    ModelState.AddModelError("ReCaptcha", message);
+
+                    return View(model);
+                }
+
                 var user = await _userManager.FindByNameAsync(model.Email);
                 if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
                 {
