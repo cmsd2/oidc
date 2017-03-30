@@ -20,7 +20,9 @@
             ],
             "environment": [
                 { "name": "SigningKey:CertUrls", "value": "s3://cmsd2-secure/oidc/certs/1.pfx" },
-                { "name": "ASPNETCORE_URLS", "value": "http://0.0.0.0:5000" }
+                { "name": "ASPNETCORE_URLS", "value": "http://0.0.0.0:5000" },
+		{ "name": "ReCaptcha:Key", "value": "$RECAPTCHA_KEY" },
+		{ "name": "ReCaptcha:Secret", "value": "$RECAPTCHA_SECRET" }
             ],
             "mountPoints": [
             ],

@@ -1,6 +1,6 @@
 sudo: required
 services:
-  - docker
+- docker
 dist: trusty
 language: csharp
 mono: none
@@ -10,20 +10,31 @@ addons:
   apt:
     packages: 
 before_install:
-  - pip install --user awscli
-  - export PATH=$PATH:$HOME/.local/bin
+- pip install --user awscli
+- export PATH=$PATH:$HOME/.local/bin
 before_script:
 - npm install -g bower
 install:
 - dotnet restore OpenIdConnect.sln
 script:
 - dotnet build
-- dotnet publish src/OpenIdConnectServer/OpenIdConnectServer.csproj -f netcoreapp1.0 -o target
-before_deploy:
-  cd src/OpenIdConnectServer/target
+- dotnet publish src/OpenIdConnectServer/OpenIdConnectServer.csproj -f netcoreapp1.0
+  -o target
+before_deploy: cd src/OpenIdConnectServer/target
 deploy:
   provider: script
-  script: env AWS_ACCESS_KEY_ID=$ARTIFACTS_KEY AWS_SECRET_ACCESS_KEY=$ARTIFACTS_SECRET CLUSTER_NAME=cmsd2-ecs SERVICE_NAME=oidc-service TASK_FAMILY=oidc IMAGE_NAME=oidc IMAGE_TAG=$TRAVIS_BUILD_NUMBER AWS_DEFAULT_REGION=eu-west-1 DOCKER_REGISTRY=197315730647.dkr.ecr.eu-west-1.amazonaws.com /bin/bash $TRAVIS_BUILD_DIR/scripts/deploy.sh
+  script: env AWS_ACCESS_KEY_ID=$ARTIFACTS_KEY
+    AWS_SECRET_ACCESS_KEY=$ARTIFACTS_SECRET
+    CLUSTER_NAME=cmsd2-ecs
+    SERVICE_NAME=oidc-service
+    TASK_FAMILY=oidc
+    IMAGE_NAME=oidc
+    IMAGE_TAG=$TRAVIS_BUILD_NUMBER
+    AWS_DEFAULT_REGION=eu-west-1
+    DOCKER_REGISTRY=197315730647.dkr.ecr.eu-west-1.amazonaws.com
+    RECAPTCHA_KEY=$RECAPTCHA_KEY
+    RECAPTCHA_SECRET=$RECAPTCHA_SECRET
+    /bin/bash $TRAVIS_BUILD_DIR/scripts/deploy.sh
   skip_cleanup: true
   on:
     branch: master
@@ -32,4 +43,6 @@ env:
   - AWS_DEFAULT_REGION: eu-west-1
   - ARTIFACTS_KEY: AKIAJQ7AB5KKVNZLX3TQ
   - ARTIFACTS_BUCKET: cmsd2-artifacts
-  - secure: CDdMQZ0Mda/kKe/clTao2r6YEpyYp+waL+hiI5Wbx9/DylO8puTy/4wvX7KWCaWaGgDuGpfxWN1GBV8140lr1Vl6qvdCLNe9PtYyh1T9WPcnpOSzjy23aNq0Y3yPoQB+oiw6YnGy1NZTqnlXDsent8di1AymCBocWPEd7hmaCNjZLrQpJM2kDDlFqjRLxNcFT19+scojhNjw+xeEe1FsvaB4jXuMXSEuz/UPws88C6MYiTewrX55p92/QILzZx9DBBlXche7vvRoqCSjaJJp8SaXUmGhvSI9Z6aPwbQgPGWKZKznEF2ImgWHh+Spikn+FBtDYswLShRq5I/FMFQrC0JX7FO17LLrIAgrGtx4YSpOTaadY31pyoyE/lC7T7A8WtkivoxMKM6GAW/1vyRzllIQrTaOvrwaJiQCDO0VfcGyCdtwaiwv6faKGYD45GGEVqm4HpqP61G3QMRWvuVBKA13uRlU/aS5DuYMcxITZ0Fr6LyxCcVXq1AjVD+buRKTyY9ug+UFC1tS4NPo8NvqzD5NoGdtmPoXNXYIZIquwnuARzBpiqC55iPAcP/LYVcPDhHlNE87PxypS6S3xN5fS/SUcqahyuLWvpmtTYkDiYrlLp4EZNdl2idzKfFuO4Brxi3gimWDvK7nDuJbECatPa0RN39ivf5vA09fWhpNVdk=
+  - RECAPTCHA_KEY: 6LfInhoUAAAAABR_PY3rsW40hu8QzUHr_NYbOk7l
+  - secure: A9sGDrcIj032rKjWWoa9WlunFW0xqKgQkSnIWTrp+ycpdj/beJCdv5Uhf7C5efEItOikHv4Ji/BV6kczT3c4TPoel/7cYdoRNE4dZfRZgWa/ztttYDaxxL6fydiUKGBZWLaaup2ywlhQQlpW2dABnRxkU34pRYzx9fxtz6lqKiUigISgfngb9fQfP8h785gQa/fcMqjI+M6+tmUZlaSjkW0DJM1pxebICJegLIxdUXojBjElngsyXcXfBgPnEH7nJ/3jxxY6k2rG44gNz28m05jEFTdz6n1Mhe7Vhol9J2LGudk9JyNvQVR55UDHbXKz451R9JBb1t3eVHaEbSCQXEHdTm0Q6n3cL/D5DUT7JcK1BaP6oPFYgvl5T+XtHTWgPWMnpmZA1ojyDkjZBvTfBZv5D9OKcPim3rBRis6oHJVT+de+5dVgGKS1MFP5nrJx6UguNWyQHW3hUnpzuy0DcQ7ik2vva8gObkA+VHou1DTIdKmQuCxcCeFiPSji0KuNovdCUnHlb7Zl/w2JMg6qf6b8itNK78ZiJ7rS1krib7yfho/5Ne33rHT44rzwOvFHtDaGzqzM1f1bI+jg3B6Yvy2h4Xkz9rEV9rzORvUy2gAgdUjF0JFma+lk+TLLHIAPnmOx+Gxb+qGDR9ayyGvO+Hl9mZLEuwtmCF08BA4G4vw=
+  - secure: p94DHNtT/hRUr1DaP9xjeKw5ZjncH59ChN9aL9RwkMH+TnGjzznuLW2ocAkl5utnxtghq32xhi1LyjGuwnc7OSD8bF6uSjHf9ZI0mS6B2U3vN0GzQ7sZpqN7ZenMFuzxJPWmHXkSU4g1myd1UTKqPvzlX2IkpqPyVM/IOA3ocbXRVD9m7pGBXNvqSE5A2IwdE2Fg5bHyXvUy8mBmzLE8qKaF/qhg+fdgRCPh7ii+/6DTiI347CusnSU68AQckk2GEkZNVXV0RwV1DgQElalg9qPZg/DOyBDTEgncLAqaSuKw+CSOaoZW8foVlCRPmgxjmx9c7+htpEvxxdq7K0t72pfQwr3WMCdzUXwlgKKyIEv63IaqAudWOlxK6lOGjogC13EWSos6GtyAlL3TWJC+fTCrcYerDQ+mMXdi+NBypIn/cE2Km4u02EWLxTa2oGD7aWjEZRweEbDPNi5BqVNnqQCmJfwK1v4g7JkRFaD1AJaQ4Rt/EDRbPaG33KtMz6kxfYkAQqBBTPncT7stmvVwpxBbKCugbwtxAfIT46cVm5CTQ2ofuh0ElD9sy1Z0fH4pPXAgEEOVGM4T5cvjnFkRWoQPBiGXN5h4QWTU9ODTopCuV/TeCepmv/2kpqox2Dm6Niy+pLRcviyUiOs2MVPUJWDY1egutsyCoCD+PHaUlJw=
