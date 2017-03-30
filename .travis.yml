@@ -23,8 +23,8 @@ script:
 before_deploy: cd src/OpenIdConnectServer/target
 deploy:
   provider: script
-  script: env AWS_ACCESS_KEY_ID=$ARTIFACTS_KEY
-    AWS_SECRET_ACCESS_KEY=$ARTIFACTS_SECRET
+  script: env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
     CLUSTER_NAME=cmsd2-ecs
     SERVICE_NAME=oidc-service
     TASK_FAMILY=oidc
@@ -41,7 +41,7 @@ deploy:
 env:
   global:
   - AWS_DEFAULT_REGION: eu-west-1
-  - ARTIFACTS_KEY: AKIAJQ7AB5KKVNZLX3TQ
+  - AWS_ACCESS_KEY_ID: AKIAJQ7AB5KKVNZLX3TQ
   - ARTIFACTS_BUCKET: cmsd2-artifacts
   - RECAPTCHA_KEY: 6LfInhoUAAAAABR_PY3rsW40hu8QzUHr_NYbOk7l
   - secure: A9sGDrcIj032rKjWWoa9WlunFW0xqKgQkSnIWTrp+ycpdj/beJCdv5Uhf7C5efEItOikHv4Ji/BV6kczT3c4TPoel/7cYdoRNE4dZfRZgWa/ztttYDaxxL6fydiUKGBZWLaaup2ywlhQQlpW2dABnRxkU34pRYzx9fxtz6lqKiUigISgfngb9fQfP8h785gQa/fcMqjI+M6+tmUZlaSjkW0DJM1pxebICJegLIxdUXojBjElngsyXcXfBgPnEH7nJ/3jxxY6k2rG44gNz28m05jEFTdz6n1Mhe7Vhol9J2LGudk9JyNvQVR55UDHbXKz451R9JBb1t3eVHaEbSCQXEHdTm0Q6n3cL/D5DUT7JcK1BaP6oPFYgvl5T+XtHTWgPWMnpmZA1ojyDkjZBvTfBZv5D9OKcPim3rBRis6oHJVT+de+5dVgGKS1MFP5nrJx6UguNWyQHW3hUnpzuy0DcQ7ik2vva8gObkA+VHou1DTIdKmQuCxcCeFiPSji0KuNovdCUnHlb7Zl/w2JMg6qf6b8itNK78ZiJ7rS1krib7yfho/5Ne33rHT44rzwOvFHtDaGzqzM1f1bI+jg3B6Yvy2h4Xkz9rEV9rzORvUy2gAgdUjF0JFma+lk+TLLHIAPnmOx+Gxb+qGDR9ayyGvO+Hl9mZLEuwtmCF08BA4G4vw=
